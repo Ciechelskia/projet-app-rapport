@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="app.title">Rapports Commerciaux</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2196F3">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <div class="header" id="header">
+            <div class="user-info">
+                <div class="avatar" id="userAvatar">U</div>
+                <div>
+                    <div id="userName">Utilisateur</div>
+                    <div class="user-role" id="userRole">Commercial</div>
+                </div>
+            </div>
+            <div class="nav-buttons">
+                <button class="nav-btn" id="navBrouillon" data-i18n="nav.drafts">📝 Brouillons</button>
+                <button class="nav-btn" id="navRapports" data-i18n="nav.reports">📊 Rapports</button>
+                
+                <!-- SÉLECTEUR DE LANGUE -->
+                <div id="languageSelectorContainer"></div>
+                
+                <button class="nav-btn logout" id="logoutBtn" data-i18n="nav.logout">🚪</button>
+            </div>
+        </div>
+
+        <!-- MAIN CONTENT -->
+        <div id="mainContent">
+            
+            <!-- PAGE LOGIN -->
+            <div class="page login-page" id="loginPage" style="display: block;">
+                <!-- SÉLECTEUR DE LANGUE SUR LA PAGE LOGIN -->
+                <div class="login-language-selector" id="loginLanguageSelector"></div>
+                
+                <div class="logo">🏢</div>
+                <h1 data-i18n="login.title">Connexion</h1>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="username" data-i18n="login.username">👤 Nom d'utilisateur</label>
+                        <input type="text" id="username" name="username" required autocomplete="username">
+                    </div>
+                    <div class="form-group">
+                        <label for="password" data-i18n="login.password">🔒 Mot de passe</label>
+                        <input type="password" id="password" name="password" required autocomplete="current-password">
+                    </div>
+                    <button type="submit" class="login-btn" id="loginBtn" data-i18n="login.button">Se connecter</button>
+                    <div class="error-message" id="errorMessage"></div>
+                    <div class="loading" id="loadingMessage">
+                        <div class="loading-spinner"></div>
+                        <span data-i18n="login.loading">Connexion en cours...</span>
+                    </div>
+                </form>
+            </div>
+
+            <!-- PAGE BROUILLON -->
+            <div class="page" id="brouillonPage" style="display: none;">
+                <h1 data-i18n="drafts.title">📝 Brouillons</h1>
+                
+                <!-- Section Enregistrement -->
+                <div class="recording-section">
+                    <h3 data-i18n="drafts.create">🎤 Créer un nouveau rapport</h3>
+                    
+                    <!-- Options d'ajout -->
+                    <div class="input-options">
+                        <div class="option-group">
+                            <h4 data-i18n="drafts.record">Enregistrer un vocal</h4>
+                            <div class="record-button" id="recordBtn">⏺️</div>
+                            <div id="recordingStatus" data-i18n="drafts.record.button">Appuyer pour enregistrer</div>
+                            
+                            <div class="audio-controls" id="audioControls">
+                                <button class="audio-btn" id="playBtn" data-i18n="drafts.record.play">▶️ Écouter</button>
+                                <button class="audio-btn" id="reRecordBtn" data-i18n="drafts.record.redo">🔄 Refaire</button>
+                            </div>
+                        </div>
+                        
+                        <div class="option-divider" data-i18n="drafts.or">OU</div>
+                        
+                        <div class="option-group">
+                            <h4 data-i18n="drafts.upload">Importer un fichier audio</h4>
+                            <input type="file" id="audioFileInput" accept="audio/*" style="display: none;">
+                            <button class="upload-btn" id="uploadBtn" data-i18n="drafts.upload.button">📁 Choisir un fichier</button>
+                            <div id="uploadStatus"></div>
+                        </div>
+                    </div>
+                    
+                    <button class="send-btn" id="sendAudioBtn" data-i18n="drafts.send">📤 Envoyer pour traitement</button>
+                </div>
+
+                <!-- Liste des brouillons -->
+                <div>
+                    <h3 data-i18n="drafts.list.title">📋 Rapports en attente de validation :</h3>
+                    <div class="reports-list" id="brouillonsList">
+                        <div class="empty-state">
+                            <div class="icon">📄</div>
+                            <p data-i18n="drafts.empty">Aucun brouillon pour le moment</p>
+                            <p class="empty-subtitle" data-i18n="drafts.empty.subtitle">Enregistrez ou importez votre premier rapport vocal !</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAGE RAPPORTS -->
+            <div class="page" id="rapportsPage" style="display: none;">
+                <h1 data-i18n="reports.title">📊 Rapports finalisés</h1>
+                
+                <!-- Section Recherche -->
+                <div class="search-section">
+                    <input type="text" class="search-input" id="searchInput" data-i18n-placeholder="reports.search" placeholder="🔍 Rechercher un rapport...">
+                </div>
+
+                <!-- Stats avec bouton créer dossier -->
+                <div class="stats-section" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                    <div style="display: flex; gap: 30px; flex-wrap: wrap;">
+                        <span><span data-i18n="reports.stats" data-i18n-params='{"count":""}'>✅ Rapports validés :</span> <span id="rapportsCount">0</span></span>
+                        <span><span data-i18n="reports.stats.pdf" data-i18n-params='{"count":""}'>📄 PDF générés :</span> <span id="pdfCount">0</span></span>
+                    </div>
+                    <button class="action-btn" id="createFolderBtnTop" style="background: var(--gradient-main); color: white; padding: 10px 20px; border-radius: 20px; font-weight: 600; font-size: 13px; box-shadow: 0 2px 10px rgba(37, 99, 235, 0.3); transition: all 0.3s ease;" 
+                            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 15px rgba(37, 99, 235, 0.4)';" 
+                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 10px rgba(37, 99, 235, 0.3)';"
+                            onclick="window.dataManager.showCreateFolderModal()">
+                        ➕ <span data-i18n="folder.create.button">Créer un dossier</span>
+                    </button>
+                </div>
+
+                <!-- Liste des rapports -->
+                <div class="reports-list" id="rapportsList">
+                    <div class="empty-state">
+                        <div class="icon">📋</div>
+                        <p data-i18n="reports.empty">Aucun rapport finalisé</p>
+                        <p class="empty-subtitle" data-i18n="reports.empty.subtitle">Validez vos brouillons pour les voir ici !</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/translations.js"></script>
+    <script src="js/language-manager.js"></script>
+    <script src="js/utils.js"></script>
+    
+    <!-- Google Sheets Manager avec cache optimisé -->
+    <script>
+    class GoogleSheetsManager {
+        constructor() {
+            this.SHEET_ID = '1I2SdNqwVB3bU-h3GoYvKjPRm2WhjpPdPc77rJKML9KEr';
+            this.SHEET_NAME = 'utilisateur';
+            this.cache = {
+                users: [],
+                lastUpdate: null,
+                cacheDuration: 300000,
+                retryCount: 3,
+                retryDelay: 1000
+            };
+        }
+
+        getSheetUrl() {
+            return `https://docs.google.com/spreadsheets/d/${this.SHEET_ID}/gviz/tq?tqx=out:json&sheet=${this.SHEET_NAME}`;
+        }
+
+        async fetchUsersWithRetry(attempt = 1) {
+            try {
+                console.log(`🔄 Tentative ${attempt}/${this.cache.retryCount} - Récupération Google Sheets`);
+                
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000);
+                
+                const response = await fetch(this.getSheetUrl(), {
+                    signal: controller.signal,
+                    cache: 'no-cache'
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const textData = await response.text();
+                const jsonData = textData.substring(47).slice(0, -2);
+                const data = JSON.parse(jsonData);
+                
+                const users = this.parseSheetData(data);
+                
+                this.cache.users = users;
+                this.cache.lastUpdate = new Date();
+                this.saveCacheToStorage(users);
+                
+                console.log(`✅ ${users.length} utilisateurs récupérés (tentative ${attempt})`);
+                return users;
+                
+            } catch (error) {
+                console.error(`❌ Erreur tentative ${attempt}:`, error);
+                
+                if (attempt < this.cache.retryCount) {
+                    const delay = this.cache.retryDelay * Math.pow(2, attempt - 1);
+                    console.log(`⏳ Retry dans ${delay}ms...`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    return this.fetchUsersWithRetry(attempt + 1);
+                }
+                
+                console.error(`❌ Échec définitif après ${this.cache.retryCount} tentatives`);
+                throw error;
+            }
+        }
+
+        saveCacheToStorage(users) {
+            try {
+                const cacheData = {
+                    users: users,
+                    timestamp: Date.now(),
+                    version: CONFIG.APP_VERSION || '1.0.0'
+                };
+                
+                const compressed = JSON.stringify(cacheData);
+                localStorage.setItem('sheets_cache', compressed);
+                console.log('💾 Cache Google Sheets sauvegardé');
+            } catch (error) {
+                console.warn('⚠️ Erreur sauvegarde cache:', error);
+            }
+        }
+
+        loadCacheFromStorage() {
+            try {
+                const cached = localStorage.getItem('sheets_cache');
+                if (!cached) return null;
+                
+                const data = JSON.parse(cached);
+                const age = Date.now() - data.timestamp;
+                
+                if (age < this.cache.cacheDuration) {
+                    console.log('💾 Cache localStorage utilisé');
+                    return data.users;
+                } else {
+                    console.log('⏰ Cache localStorage expiré');
+                    return data.users;
+                }
+            } catch (error) {
+                console.warn('⚠️ Erreur lecture cache:', error);
+                return null;
+            }
+        }
+
+        async fetchUsers() {
+            try {
+                return await this.fetchUsersWithRetry();
+            } catch (error) {
+                const cachedUsers = this.loadCacheFromStorage();
+                if (cachedUsers) {
+                    console.log('🔄 Fallback vers cache persistant');
+                    Utils.showToast(t('toast.network.offline'), 'info');
+                    return cachedUsers;
+                }
+                
+                console.log('🔄 Utilisation des utilisateurs par défaut');
+                return this.getDefaultUsers();
+            }
+        }
+
+        parseSheetData(data) {
+            const users = [];
+            
+            if (!data.table || !data.table.rows) {
+                console.warn('⚠️ Aucune donnée trouvée dans Google Sheets');
+                return users;
+            }
+            
+            const rows = data.table.rows;
+            
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                
+                if (!row.c || row.c.length < 5) continue;
+                
+                try {
+                    const user = {
+                        id: i,
+                        username: this.getCellValue(row.c[0]),
+                        password: this.getCellValue(row.c[1]),
+                        nom: this.getCellValue(row.c[2]),
+                        role: this.getCellValue(row.c[3]),
+                        statut: this.getCellValue(row.c[4]),
+                        dateCreation: this.getCellValue(row.c[5]),
+                        deviceId: this.getCellValue(row.c[6]),
+                        derniereConnexion: this.getCellValue(row.c[7]),
+                        isActive: this.getCellValue(row.c[4]) === 'actif'
+                    };
+                    
+                    if (user.username && user.password) {
+                        users.push(user);
+                        console.log(`👤 Utilisateur ajouté: ${user.username} (${user.statut})`);
+                    }
+                    
+                } catch (error) {
+                    console.error(`❌ Erreur parsing ligne ${i}:`, error);
+                }
+            }
+            
+            return users;
+        }
+
+        getCellValue(cell) {
+            if (!cell) return null;
+            if (cell.v !== undefined) return cell.v;
+            if (cell.f !== undefined) return cell.f;
+            return null;
+        }
+
+        getDefaultUsers() {
+            return [
+                {
+                    id: 1,
+                    username: "commercial1",
+                    password: "pass123",
+                    nom: "Jean Dupont",
+                    role: "commercial",
+                    statut: "inactif",
+                    deviceId: null,
+                    isActive: false,
+                    dateCreation: "2024-09-23"
+                },
+                {
+                    id: 2,
+                    username: "andreac",
+                    password: "pass123",
+                    nom: "Andrea Ciechelski",
+                    role: "commercial",
+                    statut: "actif",
+                    deviceId: null,
+                    isActive: true,
+                    dateCreation: "2024-09-24"
+                },
+                 {
+                    id: 3,
+                    username: "guillaumer",
+                    password: "pass123",
+                    nom: "Guillaume Renouard",
+                    role: "commercial",
+                    statut: "actif",
+                    deviceId: null,
+                    isActive: true,
+                    dateCreation: "2025-10-5"
+                }
+            ];
+        }
+
+        async getUsers(forceRefresh = false) {
+            if (!forceRefresh && this.cache.users.length > 0 && this.cache.lastUpdate) {
+                const timeDiff = new Date() - this.cache.lastUpdate;
+                if (timeDiff < this.cache.cacheDuration) {
+                    console.log('🔄 Cache mémoire utilisé');
+                    return this.cache.users;
+                }
+            }
+            
+            if (!forceRefresh) {
+                const cachedUsers = this.loadCacheFromStorage();
+                if (cachedUsers) {
+                    this.cache.users = cachedUsers;
+                    this.cache.lastUpdate = new Date();
+                    return cachedUsers;
+                }
+            }
+            
+            return await this.fetchUsers();
+        }
+
+        async findUser(username) {
+            const users = await this.getUsers();
+            return users.find(user => user.username === username);
+        }
+
+        async authenticateUser(username, password) {
+            try {
+                console.log(`🔐 Tentative d'authentification: ${username}`);
+                
+                const user = await this.findUser(username);
+                
+                if (!user) {
+                    console.log(`❌ Utilisateur introuvable: ${username}`);
+                    return { success: false, error: 'Utilisateur introuvable' };
+                }
+                
+                if (user.password !== password) {
+                    console.log(`❌ Mot de passe incorrect pour: ${username}`);
+                    return { success: false, error: 'Mot de passe incorrect' };
+                }
+                
+                if (!user.isActive || user.statut !== 'actif') {
+                    console.log(`❌ Compte inactif: ${username}`);
+                    return { 
+                        success: false, 
+                        error: 'Compte suspendu - Contactez l\'administrateur pour réactiver votre abonnement' 
+                    };
+                }
+                
+                console.log(`✅ Authentification réussie: ${username}`);
+                return { success: true, user: user };
+                
+            } catch (error) {
+                console.error('❌ Erreur lors de l\'authentification:', error);
+                return { 
+                    success: false, 
+                    error: 'Erreur de connexion - Vérifiez votre connexion internet' 
+                };
+            }
+        }
+
+        async updateUserDeviceId(username, deviceId) {
+            console.log(`📱 Association device ${deviceId} à l'utilisateur ${username}`);
+            const users = await this.getUsers();
+            const user = users.find(u => u.username === username);
+            if (user) {
+                user.deviceId = deviceId;
+                this.saveCacheToStorage(users);
+                return true;
+            }
+            return false;
+        }
+
+        async updateLastConnection(username) {
+            console.log(`⏰ Mise à jour dernière connexion: ${username}`);
+            const users = await this.getUsers();
+            const user = users.find(u => u.username === username);
+            if (user) {
+                user.derniereConnexion = new Date().toISOString();
+                this.saveCacheToStorage(users);
+                return true;
+            }
+            return false;
+        }
+
+        async refreshCache() {
+            console.log('🔄 Actualisation forcée du cache utilisateurs');
+            return await this.getUsers(true);
+        }
+
+        async getUserStats() {
+            const users = await this.getUsers();
+            return {
+                total: users.length,
+                actifs: users.filter(u => u.isActive).length,
+                inactifs: users.filter(u => !u.isActive).length,
+                commerciaux: users.filter(u => u.role === 'commercial').length,
+                managers: users.filter(u => u.role === 'manager').length
+            };
+        }
+    }
+
+    window.GoogleSheetsManager = GoogleSheetsManager;
+    </script>
+    
+    <script src="js/audio-manager.js"></script>
+    <script src="js/data-manager.js"></script>
+    <script src="js/app.js"></script>
+    
+    <!-- Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('service-worker.js')
+                    .then(registration => console.log('SW registered'))
+                    .catch(err => console.log('SW registration failed'));
+            });
+        }
+    </script>
+</body>
+</html>
