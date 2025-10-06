@@ -1,7 +1,7 @@
 // Configuration globale de l'application
 const CONFIG = {
     N8N_WEBHOOK_URL: 'https://andreaprogra.app.n8n.cloud/webhook/88303112-848e-4b93-8758-5c2b16ecc52e',
-    N8N_TRANSLATE_WEBHOOK_URL: 'https://andreaprogra.app.n8n.cloud/webhook-test/translate-report', // À remplacer
+    N8N_TRANSLATE_WEBHOOK_URL: 'https://andreaprogra.app.n8n.cloud/webhook/translate-report', // À remplacer
     APP_VERSION: '1.0.0',
     MAX_FILE_SIZE: 50 * 1024 * 1024, // 50MB
     SUPPORTED_AUDIO_FORMATS: [
