@@ -23,27 +23,35 @@ class AppManager {
 
     // === INITIALISATION ===
 
-    initializeApp() {
-        this.logout();
-        this.showPage(PAGES.LOGIN);
-        
-        // Ajouter les styles CSS pour les animations toast
-        this.addToastStyles();
-        
-        // Injecter les styles du sélecteur de langue
-        this.languageManager.injectStyles();
-        
-        // Créer et insérer les sélecteurs de langue (login + header)
-        this.initLanguageSelector();
-        
-        // Écouter les changements de langue
-        window.addEventListener('languageChanged', (e) => {
-            this.onLanguageChanged(e.detail.language);
-        });
-        
-        // Charger les utilisateurs en mémoire
-        this.loadUsersToMemory();
-    }
+     initializeApp() {
+    this.logout();
+    this.showPage(PAGES.LOGIN);
+    
+    // Ajouter les styles CSS pour les animations toast
+    this.addToastStyles();
+    
+    // IMPORTANT : Initialiser la langue AVANT tout le reste
+    console.log('🔄 Initialisation de la langue...');
+    this.languageManager.init(); // ← LIGNE CRITIQUE AJOUTÉE ICI
+    console.log('✅ Langue initialisée:', this.languageManager.getCurrentLanguage());
+    
+    // Injecter les styles du sélecteur de langue
+    this.languageManager.injectStyles();
+    
+    // Créer et insérer les sélecteurs de langue (login + header)
+    this.initLanguageSelector();
+    
+    // Mettre à jour l'interface avec la langue détectée
+    this.languageManager.updateUI();
+    
+    // Écouter les changements de langue
+    window.addEventListener('languageChanged', (e) => {
+        this.onLanguageChanged(e.detail.language);
+    });
+    
+    // Charger les utilisateurs en mémoire
+    this.loadUsersToMemory();
+}
 
     // Charger les utilisateurs depuis USERS_DB dans la mémoire
     loadUsersToMemory() {

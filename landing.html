@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rapports Commerciaux IA - Transformez vos visites en rapports professionnels</title>
+    <title>VOCALIA - Transformez vos visites en rapports professionnels</title>
     <meta name="description" content="Créez des rapports de visite commerciale professionnels en quelques secondes grâce à l'IA. Enregistrez, l'IA transcrit et structure automatiquement.">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
     <link rel="stylesheet" href="css/landing.css">
@@ -13,14 +13,17 @@
     <nav class="navbar">
         <div class="nav-container">
             <div class="nav-brand">
-                <span class="nav-logo">📋</span>
-                <span class="nav-title">Rapports IA</span>
+                <span class="nav-title-gradient">VOCALIA</span>
             </div>
             <div class="nav-links">
-                <a href="#features" class="nav-link">Fonctionnalités</a>
-                <a href="#demo" class="nav-link">Démo</a>
-                <a href="#pricing" class="nav-link">Tarifs</a>
-                <a href="index.html" class="nav-cta">Essayer gratuitement</a>
+                <a href="#features" class="nav-link" data-i18n-landing="landing.nav.features">Fonctionnalités</a>
+                <a href="#demo" class="nav-link" data-i18n-landing="landing.nav.demo">Démo</a>
+                <a href="#pricing" class="nav-link" data-i18n-landing="landing.nav.pricing">Tarifs</a>
+                
+                <!-- SÉLECTEUR DE LANGUE -->
+                <div id="languageSelectorLanding"></div>
+                
+                <a href="index.html" class="nav-cta" data-i18n-landing="landing.nav.cta">Essayer gratuitement</a>
             </div>
         </div>
     </nav>
@@ -31,42 +34,42 @@
             <div class="hero-content">
                 <div class="hero-badge">
                     <span class="badge-icon">🚀</span>
-                    <span>Nouveau : IA multilingue intégrée</span>
+                    <span data-i18n-landing="landing.hero.badge">Nouveau : IA multilingue intégrée</span>
                 </div>
                 
                 <h1 class="hero-title">
-                    Transformez vos visites commerciales en 
-                    <span class="gradient-text">rapports professionnels</span>
-                    en 30 secondes
+                    <span data-i18n-landing="landing.hero.title.part1">Transformez vos visites commerciales en</span>
+                    <span class="gradient-text" data-i18n-landing="landing.hero.title.highlight">rapports professionnels</span>
+                    <span data-i18n-landing="landing.hero.title.part2">en 30 secondes</span>
                 </h1>
                 
-                <p class="hero-subtitle">
+                <p class="hero-subtitle" data-i18n-landing="landing.hero.subtitle">
                     Fini les rapports fastidieux ! Enregistrez votre visite, notre IA transcrit, structure et génère automatiquement un rapport PDF professionnel. Disponible en 6 langues.
                 </p>
                 
                 <div class="hero-cta">
                     <a href="index.html" class="cta-primary">
-                        <span>Commencer gratuitement</span>
+                        <span data-i18n-landing="landing.hero.cta.primary">Commencer gratuitement</span>
                         <span class="cta-icon">→</span>
                     </a>
                     <a href="#demo" class="cta-secondary">
                         <span class="play-icon">▶</span>
-                        Voir la démo
+                        <span data-i18n-landing="landing.hero.cta.secondary">Voir la démo</span>
                     </a>
                 </div>
                 
                 <div class="hero-stats">
                     <div class="stat">
-                        <div class="stat-number">95%</div>
-                        <div class="stat-label">Temps économisé</div>
+                        <div class="stat-number" data-i18n-landing="landing.hero.stat1.number">95%</div>
+                        <div class="stat-label" data-i18n-landing="landing.hero.stat1.label">Temps économisé</div>
                     </div>
                     <div class="stat">
-                        <div class="stat-number">30s</div>
-                        <div class="stat-label">Rapport généré</div>
+                        <div class="stat-number" data-i18n-landing="landing.hero.stat2.number">30s</div>
+                        <div class="stat-label" data-i18n-landing="landing.hero.stat2.label">Rapport généré</div>
                     </div>
                     <div class="stat">
-                        <div class="stat-number">6</div>
-                        <div class="stat-label">Langues supportées</div>
+                        <div class="stat-number" data-i18n-landing="landing.hero.stat3.number">6</div>
+                        <div class="stat-label" data-i18n-landing="landing.hero.stat3.label">Langues supportées</div>
                     </div>
                 </div>
             </div>
@@ -100,45 +103,45 @@
     <section id="features" class="features">
         <div class="features-container">
             <div class="section-header">
-                <h2>Pourquoi choisir notre solution ?</h2>
-                <p>Une technologie de pointe pour des rapports commerciaux d'exception</p>
+                <h2 data-i18n-landing="landing.features.title">Pourquoi choisir notre solution ?</h2>
+                <p data-i18n-landing="landing.features.subtitle">Une technologie de pointe pour des rapports commerciaux d'exception</p>
             </div>
             
             <div class="features-grid">
                 <div class="feature-card">
                     <div class="feature-icon">🎤</div>
-                    <h3>Enregistrement vocal intelligent</h3>
-                    <p>Enregistrez directement depuis votre mobile ou importez vos fichiers audio. Notre IA reconnaît automatiquement la langue et optimise la qualité.</p>
+                    <h3 data-i18n-landing="landing.feature1.title">Enregistrement vocal intelligent</h3>
+                    <p data-i18n-landing="landing.feature1.description">Enregistrez directement depuis votre mobile ou importez vos fichiers audio. Notre IA reconnaît automatiquement la langue et optimise la qualité.</p>
                 </div>
                 
                 <div class="feature-card">
                     <div class="feature-icon">🤖</div>
-                    <h3>IA de transcription avancée</h3>
-                    <p>Transcription précise avec reconnaissance du contexte commercial. L'IA structure automatiquement vos informations en rapport professionnel.</p>
+                    <h3 data-i18n-landing="landing.feature2.title">IA de transcription avancée</h3>
+                    <p data-i18n-landing="landing.feature2.description">Transcription précise avec reconnaissance du contexte commercial. L'IA structure automatiquement vos informations en rapport professionnel.</p>
                 </div>
                 
                 <div class="feature-card">
                     <div class="feature-icon">📄</div>
-                    <h3>PDF automatique</h3>
-                    <p>Génération instantanée de rapports PDF formatés, prêts à partager avec vos clients ou votre équipe. Design professionnel garanti.</p>
+                    <h3 data-i18n-landing="landing.feature3.title">PDF automatique</h3>
+                    <p data-i18n-landing="landing.feature3.description">Génération instantanée de rapports PDF formatés, prêts à partager avec vos clients ou votre équipe. Design professionnel garanti.</p>
                 </div>
                 
                 <div class="feature-card">
                     <div class="feature-icon">🌐</div>
-                    <h3>Multilingue</h3>
-                    <p>Support de 6 langues avec traduction automatique. Travaillez avec des clients internationaux sans barrière linguistique.</p>
+                    <h3 data-i18n-landing="landing.feature4.title">Multilingue</h3>
+                    <p data-i18n-landing="landing.feature4.description">Support de 6 langues avec traduction automatique. Travaillez avec des clients internationaux sans barrière linguistique.</p>
                 </div>
                 
                 <div class="feature-card">
                     <div class="feature-icon">📱</div>
-                    <h3>PWA Mobile</h3>
-                    <p>Application web progressive installable. Fonctionne hors ligne, synchronisation automatique, notifications push.</p>
+                    <h3 data-i18n-landing="landing.feature5.title">PWA Mobile</h3>
+                    <p data-i18n-landing="landing.feature5.description">Application web progressive installable. Fonctionne hors ligne, synchronisation automatique, notifications push.</p>
                 </div>
                 
                 <div class="feature-card">
                     <div class="feature-icon">🔒</div>
-                    <h3>Sécurisé</h3>
-                    <p>Authentification sécurisée, limitation d'appareils, stockage local chiffré. Vos données restent privées et protégées.</p>
+                    <h3 data-i18n-landing="landing.feature6.title">Sécurisé</h3>
+                    <p data-i18n-landing="landing.feature6.description">Authentification sécurisée, limitation d'appareils, stockage local chiffré. Vos données restent privées et protégées.</p>
                 </div>
             </div>
         </div>
@@ -148,15 +151,15 @@
     <section id="demo" class="demo">
         <div class="demo-container">
             <div class="demo-content">
-                <h2>Voyez la magie en action</h2>
-                <p>De l'enregistrement vocal au rapport PDF en 3 étapes simples</p>
+                <h2 data-i18n-landing="landing.demo.title">Voyez la magie en action</h2>
+                <p data-i18n-landing="landing.demo.subtitle">De l'enregistrement vocal au rapport PDF en 3 étapes simples</p>
                 
                 <div class="demo-steps">
                     <div class="demo-step">
                         <div class="step-number">1</div>
                         <div class="step-content">
-                            <h3>Enregistrez</h3>
-                            <p>Parlez naturellement de votre visite client</p>
+                            <h3 data-i18n-landing="landing.demo.step1.title">Enregistrez</h3>
+                            <p data-i18n-landing="landing.demo.step1.description">Parlez naturellement de votre visite client</p>
                         </div>
                         <div class="step-visual">🎤</div>
                     </div>
@@ -166,8 +169,8 @@
                     <div class="demo-step">
                         <div class="step-number">2</div>
                         <div class="step-content">
-                            <h3>L'IA structure</h3>
-                            <p>Transcription et mise en forme automatique</p>
+                            <h3 data-i18n-landing="landing.demo.step2.title">L'IA structure</h3>
+                            <p data-i18n-landing="landing.demo.step2.description">Transcription et mise en forme automatique</p>
                         </div>
                         <div class="step-visual">🤖</div>
                     </div>
@@ -177,8 +180,8 @@
                     <div class="demo-step">
                         <div class="step-number">3</div>
                         <div class="step-content">
-                            <h3>PDF généré</h3>
-                            <p>Rapport professionnel prêt à partager</p>
+                            <h3 data-i18n-landing="landing.demo.step3.title">PDF généré</h3>
+                            <p data-i18n-landing="landing.demo.step3.description">Rapport professionnel prêt à partager</p>
                         </div>
                         <div class="step-visual">📄</div>
                     </div>
@@ -186,7 +189,7 @@
                 
                 <div class="demo-cta">
                     <a href="index.html" class="cta-primary">
-                        Tester maintenant
+                        <span data-i18n-landing="landing.demo.cta">Tester maintenant</span>
                         <span class="cta-icon">→</span>
                     </a>
                 </div>
@@ -198,25 +201,25 @@
     <section class="benefits">
         <div class="benefits-container">
             <div class="benefits-content">
-                <h2>Économisez 95% de votre temps de rédaction</h2>
+                <h2 data-i18n-landing="landing.benefits.title">Économisez 95% de votre temps de rédaction</h2>
                 <div class="benefits-comparison">
                     <div class="comparison-before">
-                        <h3>❌ Avant</h3>
+                        <h3 data-i18n-landing="landing.benefits.before.title">❌ Avant</h3>
                         <ul>
-                            <li>30 min de rédaction par rapport</li>
-                            <li>Risque d'oubli d'informations</li>
-                            <li>Mise en forme fastidieuse</li>
-                            <li>Rapports peu structurés</li>
+                            <li data-i18n-landing="landing.benefits.before.item1">30 min de rédaction par rapport</li>
+                            <li data-i18n-landing="landing.benefits.before.item2">Risque d'oubli d'informations</li>
+                            <li data-i18n-landing="landing.benefits.before.item3">Mise en forme fastidieuse</li>
+                            <li data-i18n-landing="landing.benefits.before.item4">Rapports peu structurés</li>
                         </ul>
                     </div>
                     
                     <div class="comparison-after">
-                        <h3>✅ Avec Rapports IA</h3>
+                        <h3 data-i18n-landing="landing.benefits.after.title">✅ Avec Rapports IA</h3>
                         <ul>
-                            <li>30 secondes d'enregistrement</li>
-                            <li>Capture complète automatique</li>
-                            <li>PDF professionnel instantané</li>
-                            <li>Structure optimisée par l'IA</li>
+                            <li data-i18n-landing="landing.benefits.after.item1">30 secondes d'enregistrement</li>
+                            <li data-i18n-landing="landing.benefits.after.item2">Capture complète automatique</li>
+                            <li data-i18n-landing="landing.benefits.after.item3">PDF professionnel instantané</li>
+                            <li data-i18n-landing="landing.benefits.after.item4">Structure optimisée par l'IA</li>
                         </ul>
                     </div>
                 </div>
@@ -227,43 +230,43 @@
     <!-- TESTIMONIALS SECTION -->
     <section class="testimonials">
         <div class="testimonials-container">
-            <h2>Ce que disent nos utilisateurs</h2>
+            <h2 data-i18n-landing="landing.testimonials.title">Ce que disent nos utilisateurs</h2>
             <div class="testimonials-grid">
                 <div class="testimonial-card">
-                    <div class="testimonial-content">
+                    <div class="testimonial-content" data-i18n-landing="landing.testimonial1.content">
                         "Cette app a révolutionné ma façon de travailler. Plus de rapports oubliés, tout est automatique et professionnel."
                     </div>
                     <div class="testimonial-author">
                         <div class="author-avatar">AC</div>
                         <div class="author-info">
-                            <div class="author-name">Andrea C.</div>
-                            <div class="author-role">Commercial Senior</div>
+                            <div class="author-name" data-i18n-landing="landing.testimonial1.name">Andrea C.</div>
+                            <div class="author-role" data-i18n-landing="landing.testimonial1.role">Commercial Senior</div>
                         </div>
                     </div>
                 </div>
                 
                 <div class="testimonial-card">
-                    <div class="testimonial-content">
+                    <div class="testimonial-content" data-i18n-landing="landing.testimonial2.content">
                         "Incroyable ! Je gagne 2h par jour sur mes rapports. L'IA comprend parfaitement le contexte commercial."
                     </div>
                     <div class="testimonial-author">
                         <div class="author-avatar">GR</div>
                         <div class="author-info">
-                            <div class="author-name">Guillaume R.</div>
-                            <div class="author-role">Responsable Commercial</div>
+                            <div class="author-name" data-i18n-landing="landing.testimonial2.name">Guillaume R.</div>
+                            <div class="author-role" data-i18n-landing="landing.testimonial2.role">Responsable Commercial</div>
                         </div>
                     </div>
                 </div>
                 
                 <div class="testimonial-card">
-                    <div class="testimonial-content">
+                    <div class="testimonial-content" data-i18n-landing="landing.testimonial3.content">
                         "La fonction multilingue est parfaite pour nos clients internationaux. PDF impeccables à chaque fois."
                     </div>
                     <div class="testimonial-author">
                         <div class="author-avatar">CH</div>
                         <div class="author-info">
-                            <div class="author-name">Corentin H.</div>
-                            <div class="author-role">Business Developer</div>
+                            <div class="author-name" data-i18n-landing="landing.testimonial3.name">Corentin H.</div>
+                            <div class="author-role" data-i18n-landing="landing.testimonial3.role">Business Developer</div>
                         </div>
                     </div>
                 </div>
@@ -275,69 +278,69 @@
     <section id="pricing" class="pricing">
         <div class="pricing-container">
             <div class="section-header">
-                <h2>Tarifs simples et transparents</h2>
-                <p>Choisissez la formule qui correspond à vos besoins</p>
+                <h2 data-i18n-landing="landing.pricing.title">Tarifs simples et transparents</h2>
+                <p data-i18n-landing="landing.pricing.subtitle">Choisissez la formule qui correspond à vos besoins</p>
             </div>
             
             <div class="pricing-grid">
                 <div class="pricing-card">
                     <div class="pricing-header">
-                        <h3>Starter</h3>
+                        <h3 data-i18n-landing="landing.pricing.starter.title">Starter</h3>
                         <div class="pricing-price">
-                            <span class="price-amount">Gratuit</span>
+                            <span class="price-amount" data-i18n-landing="landing.pricing.starter.price">Gratuit</span>
                         </div>
-                        <p class="pricing-description">Parfait pour découvrir</p>
+                        <p class="pricing-description" data-i18n-landing="landing.pricing.starter.description">Parfait pour découvrir</p>
                     </div>
                     <div class="pricing-features">
-                        <div class="feature">✅ 5 rapports/mois</div>
-                        <div class="feature">✅ Transcription IA</div>
-                        <div class="feature">✅ PDF automatique</div>
-                        <div class="feature">✅ 2 appareils max</div>
-                        <div class="feature">❌ Traduction</div>
-                        <div class="feature">❌ Dossiers</div>
+                        <div class="feature">✅ <span data-i18n-landing="landing.pricing.starter.feature1">5 rapports/mois</span></div>
+                        <div class="feature">✅ <span data-i18n-landing="landing.pricing.starter.feature2">Transcription IA</span></div>
+                        <div class="feature">✅ <span data-i18n-landing="landing.pricing.starter.feature3">PDF automatique</span></div>
+                        <div class="feature">✅ <span data-i18n-landing="landing.pricing.starter.feature4">2 appareils max</span></div>
+                        <div class="feature">❌ <span data-i18n-landing="landing.pricing.starter.feature5">Traduction</span></div>
+                        <div class="feature">❌ <span data-i18n-landing="landing.pricing.starter.feature6">Dossiers</span></div>
                     </div>
-                    <a href="index.html" class="pricing-cta secondary">Commencer gratuitement</a>
+                    <a href="index.html" class="pricing-cta secondary" data-i18n-landing="landing.pricing.starter.cta">Commencer gratuitement</a>
                 </div>
                 
                 <div class="pricing-card featured">
-                    <div class="pricing-badge">Plus populaire</div>
+                    <div class="pricing-badge" data-i18n-landing="landing.pricing.pro.badge">Plus populaire</div>
                     <div class="pricing-header">
-                        <h3>Pro</h3>
+                        <h3 data-i18n-landing="landing.pricing.pro.title">Pro</h3>
                         <div class="pricing-price">
-                            <span class="price-amount">49€</span>
-                            <span class="price-period">/mois</span>
+                            <span class="price-amount" data-i18n-landing="landing.pricing.pro.price">49€</span>
+                            <span class="price-period" data-i18n-landing="landing.pricing.pro.period">/mois</span>
                         </div>
-                        <p class="pricing-description">Pour les commerciaux actifs</p>
+                        <p class="pricing-description" data-i18n-landing="landing.pricing.pro.description">Pour les commerciaux actifs</p>
                     </div>
                     <div class="pricing-features">
-                        <div class="feature">✅ Rapports illimités</div>
-                        <div class="feature">✅ Traduction 6 langues</div>
-                        <div class="feature">✅ Dossiers organisés</div>
-                        <div class="feature">✅ Partage équipe</div>
-                        <div class="feature">✅ Support prioritaire</div>
-                        <div class="feature">✅ Intégrations</div>
+                        <div class="feature">✅ <span data-i18n-landing="landing.pricing.pro.feature1">Rapports illimités</span></div>
+                        <div class="feature">✅ <span data-i18n-landing="landing.pricing.pro.feature2">Traduction 6 langues</span></div>
+                        <div class="feature">✅ <span data-i18n-landing="landing.pricing.pro.feature3">Dossiers organisés</span></div>
+                        <div class="feature">✅ <span data-i18n-landing="landing.pricing.pro.feature4">Partage équipe</span></div>
+                        <div class="feature">✅ <span data-i18n-landing="landing.pricing.pro.feature5">Support prioritaire</span></div>
+                        <div class="feature">✅ <span data-i18n-landing="landing.pricing.pro.feature6">Intégrations</span></div>
                     </div>
-                    <a href="index.html" class="pricing-cta primary">Essayer 14 jours gratuits</a>
+                    <a href="index.html" class="pricing-cta primary" data-i18n-landing="landing.pricing.pro.cta">Essayer 14 jours gratuits</a>
                 </div>
                 
                 <div class="pricing-card">
                     <div class="pricing-header">
-                        <h3>Enterprise</h3>
+                        <h3 data-i18n-landing="landing.pricing.enterprise.title">Enterprise</h3>
                         <div class="pricing-price">
-                            <span class="price-amount">149€</span>
-                            <span class="price-period">/mois</span>
+                            <span class="price-amount" data-i18n-landing="landing.pricing.enterprise.price">149€</span>
+                            <span class="price-period" data-i18n-landing="landing.pricing.enterprise.period">/mois</span>
                         </div>
-                        <p class="pricing-description">Pour les équipes</p>
+                        <p class="pricing-description" data-i18n-landing="landing.pricing.enterprise.description">Pour les équipes</p>
                     </div>
                     <div class="pricing-features">
-                        <div class="feature">✅ Tout du Pro</div>
-                        <div class="feature">✅ Utilisateurs illimités</div>
-                        <div class="feature">✅ API personnalisée</div>
-                        <div class="feature">✅ Intégration CRM</div>
-                        <div class="feature">✅ Formation équipe</div>
-                        <div class="feature">✅ SLA 99.9%</div>
+                        <div class="feature">✅ <span data-i18n-landing="landing.pricing.enterprise.feature1">Tout du Pro</span></div>
+                        <div class="feature">✅ <span data-i18n-landing="landing.pricing.enterprise.feature2">Utilisateurs illimités</span></div>
+                        <div class="feature">✅ <span data-i18n-landing="landing.pricing.enterprise.feature3">API personnalisée</span></div>
+                        <div class="feature">✅ <span data-i18n-landing="landing.pricing.enterprise.feature4">Intégration CRM</span></div>
+                        <div class="feature">✅ <span data-i18n-landing="landing.pricing.enterprise.feature5">Formation équipe</span></div>
+                        <div class="feature">✅ <span data-i18n-landing="landing.pricing.enterprise.feature6">SLA 99.9%</span></div>
                     </div>
-                    <a href="mailto:contact@rapports-ia.com" class="pricing-cta secondary">Nous contacter</a>
+                    <a href="mailto:contact@vocalia.com" class="pricing-cta secondary" data-i18n-landing="landing.pricing.enterprise.cta">Nous contacter</a>
                 </div>
             </div>
         </div>
@@ -347,15 +350,15 @@
     <section class="final-cta">
         <div class="final-cta-container">
             <div class="final-cta-content">
-                <h2>Prêt à révolutionner vos rapports ?</h2>
-                <p>Rejoignez les centaines de commerciaux qui ont déjà adopté l'IA pour leurs rapports</p>
+                <h2 data-i18n-landing="landing.final.title">Prêt à révolutionner vos rapports ?</h2>
+                <p data-i18n-landing="landing.final.subtitle">Rejoignez les centaines de commerciaux qui ont déjà adopté l'IA pour leurs rapports</p>
                 <div class="final-cta-buttons">
                     <a href="index.html" class="cta-primary large">
-                        Commencer maintenant
+                        <span data-i18n-landing="landing.final.cta">Commencer maintenant</span>
                         <span class="cta-icon">→</span>
                     </a>
                 </div>
-                <div class="final-cta-note">
+                <div class="final-cta-note" data-i18n-landing="landing.final.note">
                     ✅ Gratuit • ✅ Sans engagement • ✅ Configuration en 2 minutes
                 </div>
             </div>
@@ -368,47 +371,70 @@
             <div class="footer-content">
                 <div class="footer-brand">
                     <div class="footer-logo">
-                        <span class="nav-logo">📋</span>
-                        <span class="nav-title">Rapports IA</span>
+                        <span class="nav-title-gradient">VOCALIA</span>
                     </div>
-                    <p>Du code et de l'IA pour donner vie à vos rapports commerciaux</p>
+                    <p data-i18n-landing="landing.footer.tagline">Du code et de l'IA pour donner vie à vos rapports commerciaux</p>
                 </div>
                 
                 <div class="footer-links">
                     <div class="footer-section">
-                        <h4>Produit</h4>
-                        <a href="#features">Fonctionnalités</a>
-                        <a href="#pricing">Tarifs</a>
-                        <a href="index.html">Application</a>
+                        <h4 data-i18n-landing="landing.footer.product.title">Produit</h4>
+                        <a href="#features" data-i18n-landing="landing.footer.product.features">Fonctionnalités</a>
+                        <a href="#pricing" data-i18n-landing="landing.footer.product.pricing">Tarifs</a>
+                        <a href="index.html" data-i18n-landing="landing.footer.product.app">Application</a>
                     </div>
                     
                     <div class="footer-section">
-                        <h4>Support</h4>
-                        <a href="mailto:support@rapports-ia.com">Contact</a>
-                        <a href="#">Documentation</a>
-                        <a href="#">FAQ</a>
+                        <h4 data-i18n-landing="landing.footer.support.title">Support</h4>
+                        <a href="mailto:support@vocalia.com" data-i18n-landing="landing.footer.support.contact">Contact</a>
+                        <a href="#" data-i18n-landing="landing.footer.support.docs">Documentation</a>
+                        <a href="#" data-i18n-landing="landing.footer.support.faq">FAQ</a>
                     </div>
                     
                     <div class="footer-section">
-                        <h4>Légal</h4>
-                        <a href="#">Confidentialité</a>
-                        <a href="#">CGU</a>
-                        <a href="#">Mentions légales</a>
+                        <h4 data-i18n-landing="landing.footer.legal.title">Légal</h4>
+                        <a href="#" data-i18n-landing="landing.footer.legal.privacy">Confidentialité</a>
+                        <a href="#" data-i18n-landing="landing.footer.legal.terms">CGU</a>
+                        <a href="#" data-i18n-landing="landing.footer.legal.mentions">Mentions légales</a>
                     </div>
                 </div>
             </div>
             
             <div class="footer-bottom">
-                <p>&copy; 2024 Rapports IA. Tous droits réservés.</p>
+                <p data-i18n-landing="landing.footer.copyright">&copy; 2024 Rapports IA. Tous droits réservés.</p>
                 <div class="footer-social">
-                    <span>Fait avec ❤️ en France</span>
+                    <span data-i18n-landing="landing.footer.made">Fait avec ❤️ en France</span>
                 </div>
             </div>
         </div>
     </footer>
 
     <!-- SCRIPTS -->
+    <script src="js/translations-landing.js"></script>
+    <script src="js/language-manager-landing.js"></script>
+    
     <script>
+        // Initialisation du gestionnaire de langues pour la landing
+        document.addEventListener('DOMContentLoaded', function() {
+            // Créer le gestionnaire de langues
+            window.languageManagerLanding = new LanguageManagerLanding();
+            
+            // Injecter les styles
+            window.languageManagerLanding.injectStyles();
+            
+            // Créer et insérer le sélecteur de langue dans la navbar
+            const langContainer = document.getElementById('languageSelectorLanding');
+            if (langContainer) {
+                const selector = window.languageManagerLanding.createLanguageSelector();
+                langContainer.appendChild(selector);
+            }
+            
+            // Appliquer les traductions
+            window.languageManagerLanding.updateUI();
+            
+            console.log('✅ Landing page multilingue initialisée');
+        });
+        
         // Smooth scroll pour les liens d'ancrage
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {

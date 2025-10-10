@@ -6,6 +6,7 @@ const TRANSLATIONS = {
         'nav.reports': '📊 Rapports',
         'nav.logout': '🚪 Déconnexion',
         'login.title': 'Connexion',
+        'login.tagline': 'Du code et de l\'IA pour donner vie à vos rapports',
         'login.username': '👤 Nom d\'utilisateur',
         'login.password': '🔒 Mot de passe',
         'login.button': 'Se connecter',
@@ -146,6 +147,8 @@ const TRANSLATIONS = {
         'report.translated.badge': 'Traduit',
         'report.translated.from': 'Traduit de {from} vers {to}',
         'report.original.view': 'Voir l\'original',
+        'reports.folders': 'Dossiers',
+        'reports.action.back': 'Retour',
     },
     
     en: {
@@ -154,6 +157,7 @@ const TRANSLATIONS = {
         'nav.reports': '📊 Reports',
         'nav.logout': '🚪 Logout',
         'login.title': 'Login',
+        'login.tagline': 'Code and AI to bring your reports to life',
         'login.username': '👤 Username',
         'login.password': '🔒 Password',
         'login.button': 'Login',
@@ -294,6 +298,8 @@ const TRANSLATIONS = {
         'report.translated.badge': 'Translated',
         'report.translated.from': 'Translated from {from} to {to}',
         'report.original.view': 'View original',
+        'reports.folders': 'Folders',
+        'reports.action.back': 'Back',
     },
     
     zh: {
@@ -302,6 +308,7 @@ const TRANSLATIONS = {
         'nav.reports': '📊 报告',
         'nav.logout': '🚪 登出',
         'login.title': '登录',
+        'login.tagline': '代码和AI为您的报告注入活力',
         'login.username': '👤 用户名',
         'login.password': '🔒 密码',
         'login.button': '登录',
@@ -442,6 +449,8 @@ const TRANSLATIONS = {
         'report.translated.badge': '已翻译',
         'report.translated.from': '从{from}翻译为{to}',
         'report.original.view': '查看原文',
+        'reports.folders': '文件夹',
+        'reports.action.back': '返回',
     },
     
     ja: {
@@ -450,6 +459,7 @@ const TRANSLATIONS = {
         'nav.reports': '📊 報告書',
         'nav.logout': '🚪 ログアウト',
         'login.title': 'ログイン',
+        'login.tagline': 'コードとAIでレポートに命を吹き込む',
         'login.username': '👤 ユーザー名',
         'login.password': '🔒 パスワード',
         'login.button': 'ログイン',
@@ -590,6 +600,8 @@ const TRANSLATIONS = {
         'report.translated.badge': '翻訳済み',
         'report.translated.from': '{from}から{to}に翻訳',
         'report.original.view': '元のレポートを表示',
+        'reports.folders': 'フォルダ',
+        'reports.action.back': '戻る',
 
     }
 };

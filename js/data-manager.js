@@ -4,6 +4,7 @@ class DataManager {
         this.storageKey = 'rapportsApp';
         this.maxBrouillons = 10;
         this.maxRapports = 20;
+        this.currentFolderId = null; // Pour la navigation dans les dossiers
     }
 
     // === GESTION DU STOCKAGE ===
@@ -59,6 +60,20 @@ class DataManager {
         }
     }
 
+    // === NAVIGATION DANS LES DOSSIERS ===
+
+    openFolder(folderId) {
+        this.currentFolderId = folderId;
+        const data = this.loadAppData();
+        this.updateRapportsUI(data.rapports);
+    }
+
+    closeFolder() {
+        this.currentFolderId = null;
+        const data = this.loadAppData();
+        this.updateRapportsUI(data.rapports);
+    }
+
     // === GESTION DES DOSSIERS ===
 
     getFolders() {
@@ -112,7 +127,13 @@ class DataManager {
         data.folders = data.folders.filter(f => f.id !== folderId);
         this.saveAppData(data);
         
-        this.updateRapportsUI(data.rapports);
+        // Retourner à la vue principale si on était dans ce dossier
+        if (this.currentFolderId === folderId) {
+            this.closeFolder();
+        } else {
+            this.updateRapportsUI(data.rapports);
+        }
+        
         Utils.showToast(t('toast.folder.deleted'), 'success');
     }
 
@@ -249,29 +270,6 @@ class DataManager {
 
         this.moveRapportToFolder(rapportId, folderId);
         modal.remove();
-    }
-
-    toggleFolder(folderId) {
-        const content = document.getElementById(`folder-content-${folderId}`);
-        const arrow = document.getElementById(`folder-arrow-${folderId}`);
-        
-        if (!content || !arrow) return;
-        
-        const isOpen = content.style.maxHeight && content.style.maxHeight !== '0px';
-        
-        if (isOpen) {
-            content.style.maxHeight = '0px';
-            content.style.padding = '0 25px';
-            arrow.style.transform = 'rotate(0deg)';
-        } else {
-            content.style.maxHeight = content.scrollHeight + 'px';
-            content.style.padding = '0 25px';
-            arrow.style.transform = 'rotate(90deg)';
-            
-            setTimeout(() => {
-                content.style.maxHeight = 'fit-content';
-            }, 400);
-        }
     }
 
     // === GESTION DES BROUILLONS ===
@@ -483,7 +481,6 @@ class DataManager {
         
         if (!rapport) return;
         
-        // Si c'est une traduction, proposer vue comparative
         if (rapport.isTranslation && rapport.originalReportId) {
             const original = data.rapports.find(r => r.id === rapport.originalReportId);
             
@@ -493,7 +490,6 @@ class DataManager {
             }
         }
         
-        // Vue normale
         const validatedDate = Utils.formatDate(rapport.validatedAt);
         const modifiedWarning = rapport.isModified ? `<br><em>${t('modal.view.modified')}</em>` : '';
         const pdfAvailable = rapport.hasPdf ? `<br><strong>${t('modal.view.pdf.available')}</strong>` : '';
@@ -520,7 +516,6 @@ class DataManager {
             `
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-height: 70vh; overflow: hidden;">
                     
-                    <!-- Colonne Original -->
                     <div style="border-right: 2px solid var(--gray-200); padding-right: 20px; overflow-y: auto;">
                         <div style="background: var(--gray-100); padding: 12px; border-radius: 10px; margin-bottom: 15px; position: sticky; top: 0; z-index: 1;">
                             <h4 style="margin: 0; color: var(--gray-800); font-size: 14px;">
@@ -536,7 +531,6 @@ class DataManager {
                         </div>
                     </div>
                     
-                    <!-- Colonne Traduction -->
                     <div style="overflow-y: auto;">
                         <div style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(124, 58, 237, 0.05)); padding: 12px; border-radius: 10px; margin-bottom: 15px; position: sticky; top: 0; z-index: 1;">
                             <h4 style="margin: 0; color: #7c3aed; font-size: 14px;">
@@ -648,20 +642,6 @@ class DataManager {
         }
     }
 
-    exportRapport(rapportId) {
-        const data = this.loadAppData();
-        const rapport = data.rapports.find(r => r.id === rapportId);
-        
-        if (rapport) {
-            const textContent = `${rapport.title}\n\n${t('date.validated')}: ${Utils.formatDate(rapport.validatedAt)}\n\n${rapport.content}`;
-            const blob = new Blob([textContent], { type: 'text/plain' });
-            const filename = `${rapport.title.replace(/[^a-z0-9]/gi, '_')}.txt`;
-            
-            Utils.downloadFile(blob, filename);
-            Utils.showToast(t('toast.report.exported'), 'success');
-        }
-    }
-
     downloadPDF(rapportId) {
         const data = this.loadAppData();
         const rapport = data.rapports.find(r => r.id === rapportId);
@@ -721,7 +701,7 @@ class DataManager {
                     <option value="de">🇩🇪 Deutsch</option>
                 </select>
                 
-                <div style="margin-top: 20px; padding: 15px; background: var(--primary-ultra-light); border-radius: 10px; border-left: 4px solid var(--primary);">
+                <div style="margin-top: 20px; padding: 15px; background: var(--primary-ultra-light);<div style="margin-top: 20px; padding: 15px; background: var(--primary-ultra-light); border-radius: 10px; border-left: 4px solid var(--primary);">
                     <p style="font-size: 13px; color: var(--gray-700); margin: 0; line-height: 1.6;">
                         <strong>ℹ️ Note:</strong> ${t('modal.translate.note')}
                     </p>
@@ -945,6 +925,7 @@ class DataManager {
         }).join('');
     }
 
+    // === NOUVELLE VERSION : INTERFACE STYLE GOOGLE DRIVE ===
     updateRapportsUI(rapports) {
         const container = document.getElementById('rapportsList');
         const counter = document.getElementById('rapportsCount');
@@ -958,6 +939,7 @@ class DataManager {
             const pdfCount = rapports ? rapports.filter(r => r.hasPdf).length : 0;
             pdfCounter.textContent = pdfCount;
         }
+        
         if (!container) return;
         
         const data = this.loadAppData();
@@ -974,103 +956,114 @@ class DataManager {
             return;
         }
 
-        const rapportsParDossier = {
-            null: rapports.filter(r => !r.folderId)
-        };
-
-        folders.forEach(folder => {
-            rapportsParDossier[folder.id] = rapports.filter(r => r.folderId === folder.id);
-        });
-
-        let html = '';
-
-        folders.forEach(folder => {
-            const folderRapports = rapportsParDossier[folder.id] || [];
+        // SI ON EST DANS UN DOSSIER SPÉCIFIQUE
+        if (this.currentFolderId) {
+            const currentFolder = folders.find(f => f.id === this.currentFolderId);
+            const folderRapports = rapports.filter(r => r.folderId === this.currentFolderId);
             
-            html += `
-                <div class="folder-section" style="
-                    margin-bottom: 20px; 
-                    border: 2px solid ${folder.color}; 
-                    border-radius: 20px; 
-                    padding: 0;
-                    background: linear-gradient(135deg, ${folder.color}08, ${folder.color}03);
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-                    overflow: hidden;
-                    transition: all 0.3s ease;
-                ">
-                    <div onclick="window.dataManager.toggleFolder('${folder.id}')" style="
-                        display: flex; 
-                        justify-content: space-between; 
-                        align-items: center; 
-                        padding: 20px 25px;
-                        cursor: pointer;
-                        transition: all 0.3s ease;
-                        background: linear-gradient(135deg, ${folder.color}15, ${folder.color}08);
-                    " onmouseover="this.style.background='linear-gradient(135deg, ${folder.color}25, ${folder.color}15)'" 
-                       onmouseout="this.style.background='linear-gradient(135deg, ${folder.color}15, ${folder.color}08)'">
-                        
-                        <div style="display: flex; align-items: center; gap: 15px;">
-                            <span id="folder-arrow-${folder.id}" style="font-size: 20px; transition: transform 0.3s ease; color: ${folder.color};">▶</span>
-                            <h3 style="margin: 0; color: ${folder.color}; font-size: 20px; display: flex; align-items: center; gap: 12px; font-weight: 700;">
-                                📁 ${Utils.escapeHtml(folder.name)}
-                                <span style="background: ${folder.color}; color: white; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 700; box-shadow: 0 2px 8px ${folder.color}40;">
-                                    ${folderRapports.length}
-                                </span>
-                            </h3>
-                        </div>
-                        
-                        <div onclick="event.stopPropagation();" style="display: flex; gap: 10px;">
-                            <button class="action-btn" style="background: var(--gradient-warning); color: white; padding: 8px 16px; font-size: 12px; border-radius: 20px; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);" onclick="window.dataManager.renameFolder('${folder.id}')">
-                                ✏️ ${t('folder.action.rename')}
-                            </button>
-                            <button class="action-btn" style="background: var(--gradient-error); color: white; padding: 8px 16px; font-size: 12px; border-radius: 20px; box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);" onclick="window.dataManager.deleteFolder('${folder.id}')">
-                                🗑️ ${t('folder.action.delete')}
-                            </button>
-                        </div>
+            container.innerHTML = `
+                <!-- FIL D'ARIANE (BREADCRUMB) -->
+                <div class="breadcrumb-container">
+                    <button 
+                        class="breadcrumb-back-btn"
+                        onclick="window.dataManager.closeFolder()"
+                    >
+                        ← ${t('reports.action.back') || 'Retour'}
+                    </button>
+                    
+                    <span class="breadcrumb-separator">›</span>
+                    
+                    <div class="breadcrumb-current">
+                        <span class="breadcrumb-folder-icon">📁</span>
+                        <h2 class="breadcrumb-folder-name">
+                            ${Utils.escapeHtml(currentFolder?.name || 'Dossier')}
+                        </h2>
+                        <span class="breadcrumb-folder-count">
+                            ${folderRapports.length}
+                        </span>
                     </div>
                     
-                    <div id="folder-content-${folder.id}" style="
-                        max-height: 0;
-                        overflow: hidden;
-                        transition: max-height 0.4s ease, padding 0.4s ease;
-                        padding: 0 25px;
-                    ">
-                        <div style="padding: 20px 0; border-top: 2px solid ${folder.color}30;">
-                            <div class="reports-list" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                                ${folderRapports.length > 0 ? folderRapports.map(rapport => this.renderRapportCard(rapport)).join('') : `
-                                    <div style="grid-column: 1 / -1; text-align: center; padding: 40px 20px; color: var(--gray-500); font-style: italic;">
-                                        <div style="font-size: 48px; margin-bottom: 15px; opacity: 0.5;">📭</div>
-                                        ${t('folder.empty')}
-                                    </div>
-                                `}
-                            </div>
+                    <div class="breadcrumb-actions" onclick="event.stopPropagation();">
+                        <button class="action-btn" style="background: var(--warning); color: white;" onclick="window.dataManager.renameFolder('${this.currentFolderId}')">
+                            ✏️ ${t('folder.action.rename')}
+                        </button>
+                        <button class="action-btn" style="background: var(--error); color: white;" onclick="window.dataManager.deleteFolder('${this.currentFolderId}')">
+                            🗑️ ${t('folder.action.delete')}
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- LISTE DES RAPPORTS DU DOSSIER -->
+                <div class="reports-grid">
+                    ${folderRapports.length > 0 ? folderRapports.map(rapport => this.renderRapportCard(rapport)).join('') : `
+                        <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--gray-500);">
+                            <div style="font-size: 64px; margin-bottom: 20px; opacity: 0.5;">📭</div>
+                            <p style="font-size: 18px; font-weight: 600;">${t('folder.empty')}</p>
                         </div>
+                    `}
+                </div>
+            `;
+            return;
+        }
+
+        // VUE PRINCIPALE : DOSSIERS EN HAUT, RAPPORTS SANS DOSSIER EN BAS
+        const rapportsSansDossier = rapports.filter(r => !r.folderId);
+        
+        let html = '';
+
+        // === SECTION DOSSIERS ===
+        if (folders.length > 0) {
+            html += `
+                <div style="margin-bottom: 40px;">
+                    <h3 class="reports-section-title">
+                        📁 ${t('reports.folders') || 'Dossiers'}
+                        <span class="count-badge">${folders.length}</span>
+                    </h3>
+                    
+                    <div class="folder-card-grid">
+                        ${folders.map(folder => {
+                            const folderRapports = rapports.filter(r => r.folderId === folder.id);
+                            
+                            return `
+                                <div 
+                                    class="folder-card"
+                                    onclick="window.dataManager.openFolder('${folder.id}')"
+                                >
+                                    <div class="folder-card-content">
+                                        <div class="folder-icon">📁</div>
+                                        <div class="folder-info">
+                                            <div class="folder-name">${Utils.escapeHtml(folder.name)}</div>
+                                            <div class="folder-count">${folderRapports.length} ${folderRapports.length > 1 ? 'rapports' : 'rapport'}</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="folder-actions" onclick="event.stopPropagation();">
+                                        <button class="folder-action-btn" onclick="window.dataManager.renameFolder('${folder.id}')">
+                                            ✏️
+                                        </button>
+                                        <button class="folder-action-btn" onclick="window.dataManager.deleteFolder('${folder.id}')">
+                                            🗑️
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
                     </div>
                 </div>
             `;
-        });
+        }
 
-        const rapportsSansDossier = rapportsParDossier[null] || [];
+        // === SECTION RAPPORTS SANS DOSSIER ===
         if (rapportsSansDossier.length > 0) {
             html += `
-                <div class="folder-section" style="
-                    margin-bottom: 25px; 
-                    border: 2px solid var(--gray-300); 
-                    border-radius: 20px; 
-                    padding: 25px; 
-                    background: linear-gradient(135deg, var(--gray-100), var(--gray-50));
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-                ">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid var(--gray-300);">
-                        <h3 style="margin: 0; color: var(--gray-700); font-size: 20px; display: flex; align-items: center; gap: 12px; font-weight: 700;">
-                            📄 ${t('folder.none')}
-                            <span style="background: var(--gray-500); color: white; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 700; box-shadow: 0 2px 8px rgba(107, 114, 128, 0.3);">
-                                ${rapportsSansDossier.length}
-                            </span>
-                        </h3>
-                    </div>
-                    <div class="reports-list" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                        ${rapportsSansDossier.map(rapport => this.renderRapportCard(rapport)).join('')}
+                <div>
+                    <h3 class="reports-section-title">
+                        📄 ${t('folder.none')}
+                        <span class="count-badge">${rapportsSansDossier.length}</span>
+                    </h3>
+                    
+                    <div class="reports-compact-list">
+                        ${rapportsSansDossier.map(rapport => this.renderRapportCardCompact(rapport)).join('')}
                     </div>
                 </div>
             `;
@@ -1079,20 +1072,23 @@ class DataManager {
         container.innerHTML = html;
     }
 
+    // Rendu carte de rapport (pour vue dossier) - VERSION FINALE
     renderRapportCard(rapport) {
         const dateValidated = new Date(rapport.validatedAt).toLocaleDateString();
         const truncatedContent = Utils.truncateText(rapport.content, 150);
-        const sourceIndicator = rapport.sourceType === 'upload' ? '📁' : '🎤';
+        
+        // UN SEUL EMOJI pour le type de source
+        let sourceIcon = '🎤'; // Par défaut vocal
+        if (rapport.sourceType === 'upload') {
+            sourceIcon = '📁';
+        }
+        
         const pdfIndicator = rapport.hasPdf ? '📄' : '';
         
         let translationBadge = '';
-        let translationInfo = '';
         let originalLink = '';
         
         if (rapport.isTranslation) {
-            const sourceLangName = this.getLanguageName(rapport.detectedSourceLanguage);
-            const targetLangName = this.getLanguageName(rapport.translatedTo);
-            
             translationBadge = `
                 <span style="
                     background: linear-gradient(135deg, #8b5cf6, #7c3aed); 
@@ -1102,33 +1098,17 @@ class DataManager {
                     font-size: 11px; 
                     font-weight: 700;
                     margin-left: 8px;
-                    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
                 ">
                     🌐 ${rapport.translatedTo.toUpperCase()}
                 </span>
             `;
             
-            translationInfo = `
-                <div style="
-                    margin: 10px 0; 
-                    padding: 10px; 
-                    background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(124, 58, 237, 0.05)); 
-                    border-left: 3px solid #8b5cf6; 
-                    border-radius: 8px; 
-                    font-size: 12px;
-                ">
-                    <span style="color: #7c3aed; font-weight: 600;">
-                        ${t('report.translated.from', { from: sourceLangName, to: targetLangName })}
-                    </span>
-                </div>
-            `;
-            
             if (rapport.originalReportId) {
                 originalLink = `
                     <button class="action-btn" 
-                            style="background: linear-gradient(135deg, #6b7280, #4b5563); color: white;"
+                            style="background: #6b7280; color: white; font-size: 11px; padding: 6px 12px;"
                             onclick="event.stopPropagation(); window.dataManager.viewRapport('${rapport.originalReportId}')">
-                        🔗 ${t('report.original.view')}
+                        🔗 Voir l'original
                     </button>
                 `;
             }
@@ -1138,46 +1118,202 @@ class DataManager {
             <div class="report-item" onclick="window.dataManager.viewRapport('${rapport.id}')">
                 <div class="report-header">
                     <div class="report-title">
-                        📋 ${pdfIndicator} ${sourceIndicator} ${Utils.escapeHtml(rapport.title)}
+                        ${sourceIcon} ${pdfIndicator} ${Utils.escapeHtml(rapport.title)}
                         ${translationBadge}
                     </div>
                     <div class="report-date">${t('reports.validated.on')} ${dateValidated}</div>
                 </div>
                 
-                ${translationInfo}
-                
                 <div class="report-content">${Utils.escapeHtml(truncatedContent)}</div>
+                
                 <div class="report-actions">
                     <button class="action-btn view-btn" onclick="event.stopPropagation(); window.dataManager.viewRapport('${rapport.id}')">
-                        👁️ ${t('reports.action.view')}
+                        👁️ Voir
                     </button>
                     
                     ${rapport.hasPdf ? `
                         <button class="action-btn download-pdf-btn" onclick="event.stopPropagation(); window.dataManager.downloadPDF('${rapport.id}')">
-                            📄 ${t('reports.action.pdf')}
+                            📄 PDF
                         </button>
                     ` : ''}
                     
                     <button class="action-btn translate-btn" 
-                            style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white;"
                             onclick="event.stopPropagation(); window.dataManager.translateRapport('${rapport.id}')">
-                        🌐 ${t('reports.action.translate')}
+                        🌐 Traduire
                     </button>
                     
                     ${originalLink}
                     
                     <button class="action-btn share-btn" onclick="event.stopPropagation(); window.dataManager.shareRapport('${rapport.id}')">
-                        📤 ${t('reports.action.share')}
+                        📤 Partager
                     </button>
                     
-                    <button class="action-btn export-btn" onclick="event.stopPropagation(); window.dataManager.exportRapport('${rapport.id}')">
-                        💾 ${t('reports.action.export')}
-                    </button>
-                    
-                    <button class="action-btn" 
-                            style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: white;" 
+                    <button class="action-btn move-btn" 
                             onclick="event.stopPropagation(); window.dataManager.showMoveFolderModal('${rapport.id}')">
-                        📂 ${t('reports.action.move')}
+                        📂 Déplacer
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    // Rendu compact pour les rapports sans dossier - VERSION FINALE
+    renderRapportCardCompact(rapport) {
+        const dateValidated = new Date(rapport.validatedAt).toLocaleDateString();
+        const truncatedContent = Utils.truncateText(rapport.content, 150);
+        
+        // UN SEUL EMOJI pour le type de source
+        let sourceIcon = '🎤'; // Par défaut vocal
+        if (rapport.sourceType === 'upload') {
+            sourceIcon = '📁';
+        }
+        
+        const pdfIndicator = rapport.hasPdf ? '📄' : '';
+        
+        let translationBadge = '';
+        let originalLink = '';
+        
+        if (rapport.isTranslation) {
+            translationBadge = `
+                <span class="translation-badge">
+                    🌐 ${rapport.translatedTo.toUpperCase()}
+                </span>
+            `;
+            
+            if (rapport.originalReportId) {
+                originalLink = `
+                    <button class="action-btn" 
+                            style="background: #6b7280; color: white; font-size: 11px; padding: 6px 12px;"
+                            onclick="event.stopPropagation(); window.dataManager.viewRapport('${rapport.originalReportId}')">
+                        🔗 Voir l'original
+                    </button>
+                `;
+            }
+        }
+        
+        return `
+            <div 
+                class="report-item-compact"
+                onclick="window.dataManager.viewRapport('${rapport.id}')"
+                style="
+                    background: white;
+                    border: 1px solid var(--gray-200);
+                    border-radius: 10px;
+                    padding: 20px;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    position: relative;
+                    overflow: hidden;
+                "
+                onmouseover="
+                    this.style.borderColor='#8B153840'; 
+                    this.style.boxShadow='0 2px 8px rgba(139, 21, 56, 0.08)';
+                    this.querySelector('.report-compact-indicator').style.opacity='1';
+                " 
+                onmouseout="
+                    this.style.borderColor='var(--gray-200)'; 
+                    this.style.boxShadow='none';
+                    this.querySelector('.report-compact-indicator').style.opacity='0';
+                "
+            >
+                <!-- Indicateur gauche -->
+                <div class="report-compact-indicator" style="
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    bottom: 0;
+                    width: 3px;
+                    background: var(--primary);
+                    opacity: 0;
+                    transition: all 0.2s ease;
+                "></div>
+                
+                <!-- En-tête du rapport -->
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 15px;">
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;">
+                            <h4 style="
+                                margin: 0; 
+                                font-size: 16px; 
+                                font-weight: 600; 
+                                color: var(--gray-900);
+                                display: flex;
+                                align-items: center;
+                                gap: 6px;
+                            ">
+                                ${sourceIcon} ${pdfIndicator} ${Utils.escapeHtml(rapport.title)}
+                            </h4>
+                            ${translationBadge}
+                        </div>
+                        
+                        <p style="
+                            margin: 0; 
+                            font-size: 13px; 
+                            color: var(--gray-500);
+                            overflow: hidden;
+                            text-overflow: ellipsis;
+                            display: -webkit-box;
+                            -webkit-line-clamp: 2;
+                            -webkit-box-orient: vertical;
+                        ">
+                            ${Utils.escapeHtml(truncatedContent)}
+                        </p>
+                    </div>
+                    
+                    <div style="
+                        font-size: 12px; 
+                        color: var(--gray-400); 
+                        background: var(--gray-50);
+                        padding: 4px 10px;
+                        border-radius: 8px;
+                        white-space: nowrap;
+                        border: 1px solid var(--gray-200);
+                        font-weight: 500;
+                    ">
+                        ${dateValidated}
+                    </div>
+                </div>
+                
+                <!-- Boutons d'action - CHARTE GRAPHIQUE COLORÉE -->
+                <div style="
+                    display: flex; 
+                    gap: 8px; 
+                    flex-wrap: wrap;
+                    padding-top: 12px;
+                    border-top: 1px solid var(--gray-100);
+                " onclick="event.stopPropagation();">
+                    <button class="action-btn view-btn" 
+                            style="font-size: 11px; padding: 6px 12px;"
+                            onclick="window.dataManager.viewRapport('${rapport.id}')">
+                        👁️ Voir
+                    </button>
+                    
+                    ${rapport.hasPdf ? `
+                        <button class="action-btn download-pdf-btn" 
+                                style="font-size: 11px; padding: 6px 12px;"
+                                onclick="window.dataManager.downloadPDF('${rapport.id}')">
+                            📄 PDF
+                        </button>
+                    ` : ''}
+                    
+                    <button class="action-btn translate-btn" 
+                            style="font-size: 11px; padding: 6px 12px;"
+                            onclick="window.dataManager.translateRapport('${rapport.id}')">
+                        🌐 Traduire
+                    </button>
+                    
+                    ${originalLink}
+                    
+                    <button class="action-btn share-btn" 
+                            style="font-size: 11px; padding: 6px 12px;"
+                            onclick="window.dataManager.shareRapport('${rapport.id}')">
+                        📤 Partager
+                    </button>
+                    
+                    <button class="action-btn move-btn" 
+                            style="font-size: 11px; padding: 6px 12px;" 
+                            onclick="window.dataManager.showMoveFolderModal('${rapport.id}')">
+                        📂 Déplacer
                     </button>
                 </div>
             </div>
