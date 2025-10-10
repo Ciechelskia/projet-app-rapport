@@ -1,0 +1,6 @@
+# Fichier : netlify.toml (maintenant à la racine)
+
+[[redirects]]
+  from = "/"
+  to = "/pages/landing.html"  # Correction du chemin
+  status = 200
