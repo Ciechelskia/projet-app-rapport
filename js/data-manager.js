@@ -60,6 +60,20 @@ class DataManager {
         }
     }
 
+    // === MÉTHODE UTILITAIRE POUR TRADUIRE LE NOMBRE DE RAPPORTS ===
+    
+   // Méthode utilitaire pour traduire le nombre de rapports
+getReportsCountText(count) {
+    // Utiliser window.t() au lieu de t() pour garantir l'accès à la fonction globale
+    if (count === 0) {
+        return window.t('folder.reports.count', { count: 0 });
+    } else if (count === 1) {
+        return window.t('folder.reports.count', { count: 1 });
+    } else {
+        return window.t('folder.reports.count.plural', { count: count });
+    }
+}
+
     // === NAVIGATION DANS LES DOSSIERS ===
 
     openFolder(folderId) {
@@ -693,15 +707,14 @@ class DataManager {
                     ${t('modal.translate.target')}
                 </label>
                 <select id="targetLanguage" class="modal-input" style="cursor: pointer;">
-                    <option value="en">🇬🇧 English</option>
-                    <option value="fr">🇫🇷 Français</option>
+                    <option value="en">🇬🇧 English</option><option value="fr">🇫🇷 Français</option>
                     <option value="zh">🇨🇳 中文</option>
                     <option value="ja">🇯🇵 日本語</option>
                     <option value="es">🇪🇸 Español</option>
                     <option value="de">🇩🇪 Deutsch</option>
                 </select>
                 
-                <div style="margin-top: 20px; padding: 15px; background: var(--primary-ultra-light);<div style="margin-top: 20px; padding: 15px; background: var(--primary-ultra-light); border-radius: 10px; border-left: 4px solid var(--primary);">
+                <div style="margin-top: 20px; padding: 15px; background: var(--primary-ultra-light); border-radius: 10px; border-left: 4px solid var(--primary);">
                     <p style="font-size: 13px; color: var(--gray-700); margin: 0; line-height: 1.6;">
                         <strong>ℹ️ Note:</strong> ${t('modal.translate.note')}
                     </p>
@@ -1033,7 +1046,7 @@ class DataManager {
                                         <div class="folder-icon">📁</div>
                                         <div class="folder-info">
                                             <div class="folder-name">${Utils.escapeHtml(folder.name)}</div>
-                                            <div class="folder-count">${folderRapports.length} ${folderRapports.length > 1 ? 'rapports' : 'rapport'}</div>
+                                            <div class="folder-count">${this.getReportsCountText(folderRapports.length)}</div>
                                         </div>
                                     </div>
                                     

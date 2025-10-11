@@ -476,7 +476,6 @@ body {
 }
 
 .search-section::before {
-    content: '🔍';
     position: absolute;
     left: 16px;
     top: 50%;

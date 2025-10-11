@@ -3,542 +3,469 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title data-i18n="app.title">Rapports Commerciaux</title>
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#2196F3">
+    <title>VOCALIA - Transformez vos visites en rapports professionnels</title>
+    <meta name="description" content="Créez des rapports de visite commerciale professionnels en quelques secondes grâce à l'IA. Enregistrez, l'IA transcrit et structure automatiquement.">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/landing.css">
 </head>
 <body>
-    <div class="container">
-        <!-- HEADER -->
-        <div class="header" id="header">
-            <!-- LOGO VOCALIA avec dégradé -->
-            <div class="app-logo">
-                <span class="logo-text">VOCALIA</span>
+    <!-- NAVIGATION -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <span class="nav-title-gradient">VOCALIA</span>
             </div>
-            
-            <div class="user-info">
-                <div class="avatar" id="userAvatar">U</div>
-                <div>
-                    <div id="userName">Utilisateur</div>
-                    <div class="user-role" id="userRole">Commercial</div>
-                </div>
-            </div>
-            <div class="nav-buttons">
-                <button class="nav-btn" id="navBrouillon" data-i18n="nav.drafts">📝 Brouillons</button>
-                <button class="nav-btn" id="navRapports" data-i18n="nav.reports">📊 Rapports</button>
+            <div class="nav-links">
+                <a href="#features" class="nav-link" data-i18n-landing="landing.nav.features">Fonctionnalités</a>
+                <a href="#demo" class="nav-link" data-i18n-landing="landing.nav.demo">Démo</a>
+                <a href="#pricing" class="nav-link" data-i18n-landing="landing.nav.pricing">Tarifs</a>
                 
                 <!-- SÉLECTEUR DE LANGUE -->
-                <div id="languageSelectorContainer"></div>
+                <div id="languageSelectorLanding"></div>
                 
-                <button class="nav-btn logout" id="logoutBtn" data-i18n="nav.logout">🚪</button>
+                <a href="app.html" class="nav-cta" data-i18n-landing="landing.nav.cta">Essayer gratuitement</a>
             </div>
         </div>
+    </nav>
 
-        <!-- MAIN CONTENT -->
-        <div id="mainContent">
-            
-            <!-- PAGE LOGIN -->
-            <div class="page login-page" id="loginPage" style="display: block;">
-                <!-- SÉLECTEUR DE LANGUE SUR LA PAGE LOGIN -->
-                <div class="login-language-selector" id="loginLanguageSelector"></div>
-                
-                <div class="logo">🏢</div>
-                <div class="brand-tagline">
-                    <h1 data-i18n="login.title">Connexion</h1>
-                    <p class="tagline" data-i18n="login.tagline">Du code et de l'IA pour donner vie à vos rapports</p>
+    <!-- HERO SECTION -->
+    <section class="hero">
+        <div class="hero-container">
+            <div class="hero-content">
+                <div class="hero-badge">
+                    <span class="badge-icon">🚀</span>
+                    <span data-i18n-landing="landing.hero.badge">Nouveau : IA multilingue intégrée</span>
                 </div>
-                <form id="loginForm">
-                    <div class="form-group">
-                        <label for="username" data-i18n="login.username">👤 Nom d'utilisateur</label>
-                        <input type="text" id="username" name="username" required autocomplete="username">
-                    </div>
-                    <div class="form-group">
-                        <label for="password" data-i18n="login.password">🔒 Mot de passe</label>
-                        <input type="password" id="password" name="password" required autocomplete="current-password">
-                    </div>
-                    <button type="submit" class="login-btn" id="loginBtn" data-i18n="login.button">Se connecter</button>
-                    <div class="error-message" id="errorMessage"></div>
-                    <div class="loading" id="loadingMessage">
-                        <div class="loading-spinner"></div>
-                        <span data-i18n="login.loading">Connexion en cours...</span>
-                    </div>
-                </form>
-            </div>
-
-            <!-- PAGE BROUILLON -->
-            <div class="page" id="brouillonPage" style="display: none;">
-                <h1 data-i18n="drafts.title">📝 Brouillons</h1>
                 
-                <!-- Section Enregistrement -->
-                <div class="recording-section">
-                    <h3 data-i18n="drafts.create">🎤 Créer un nouveau rapport</h3>
-                    
-                    <!-- Options d'ajout -->
-                    <div class="input-options">
-                        <div class="option-group">
-                            <h4 data-i18n="drafts.record">Enregistrer un vocal</h4>
-                            <div class="record-button" id="recordBtn">⏺️</div>
-                            <div id="recordingStatus" data-i18n="drafts.record.button">Appuyer pour enregistrer</div>
-                            
-                            <div class="audio-controls" id="audioControls">
-                                <button class="audio-btn" id="playBtn" data-i18n="drafts.record.play">▶️ Écouter</button>
-                                <button class="audio-btn" id="reRecordBtn" data-i18n="drafts.record.redo">🔄 Refaire</button>
+                <h1 class="hero-title">
+                    <span data-i18n-landing="landing.hero.title.part1">Transformez vos visites commerciales en</span>
+                    <span class="gradient-text" data-i18n-landing="landing.hero.title.highlight">rapports professionnels</span>
+                    <span data-i18n-landing="landing.hero.title.part2">en 30 secondes</span>
+                </h1>
+                
+                <p class="hero-subtitle" data-i18n-landing="landing.hero.subtitle">
+                    Fini les rapports fastidieux ! Enregistrez votre visite, notre IA transcrit, structure et génère automatiquement un rapport PDF professionnel. Disponible en 6 langues.
+                </p>
+                
+                <div class="hero-cta">
+                    <a href="app.html" class="cta-primary">
+                        <span data-i18n-landing="landing.hero.cta.primary">Commencer gratuitement</span>
+                        <span class="cta-icon">→</span>
+                    </a>
+                    <a href="#demo" class="cta-secondary">
+                        <span class="play-icon">▶</span>
+                        <span data-i18n-landing="landing.hero.cta.secondary">Voir la démo</span>
+                    </a>
+                </div>
+                
+                <div class="hero-stats">
+                    <div class="stat">
+                        <div class="stat-number" data-i18n-landing="landing.hero.stat1.number">95%</div>
+                        <div class="stat-label" data-i18n-landing="landing.hero.stat1.label">Temps économisé</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number" data-i18n-landing="landing.hero.stat2.number">30s</div>
+                        <div class="stat-label" data-i18n-landing="landing.hero.stat2.label">Rapport généré</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number" data-i18n-landing="landing.hero.stat3.number">6</div>
+                        <div class="stat-label" data-i18n-landing="landing.hero.stat3.label">Langues supportées</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="hero-visual">
+                <div class="phone-mockup">
+                    <div class="phone-screen">
+                        <div class="app-preview">
+                            <div class="app-header">
+                                <div class="app-avatar">JD</div>
+                                <div class="app-user">Jean Dupont</div>
+                            </div>
+                            <div class="app-record-section">
+                                <div class="app-record-btn">🎤</div>
+                                <div class="app-status">Appuyer pour enregistrer</div>
+                            </div>
+                            <div class="app-reports">
+                                <div class="app-report-item">
+                                    <div class="app-report-title">📋 Visite Client ABC</div>
+                                    <div class="app-report-status">✅ Rapport généré</div>
+                                </div>
                             </div>
                         </div>
-                        
-                        <div class="option-divider" data-i18n="drafts.or">OU</div>
-                        
-                        <div class="option-group">
-                            <h4 data-i18n="drafts.upload">Importer un fichier audio</h4>
-                            <input type="file" id="audioFileInput" accept="audio/*" style="display: none;">
-                            <button class="upload-btn" id="uploadBtn" data-i18n="drafts.upload.button">📁 Choisir un fichier</button>
-                            <div id="uploadStatus"></div>
-                        </div>
-                    </div>
-                    
-                    <button class="send-btn" id="sendAudioBtn" data-i18n="drafts.send">📤 Envoyer pour traitement</button>
-                </div>
-
-                <!-- Liste des brouillons -->
-                <div>
-                    <h3 data-i18n="drafts.list.title">📋 Rapports en attente de validation :</h3>
-                    <div class="reports-list" id="brouillonsList">
-                        <div class="empty-state">
-                            <div class="icon">📄</div>
-                            <p data-i18n="drafts.empty">Aucun brouillon pour le moment</p>
-                            <p class="empty-subtitle" data-i18n="drafts.empty.subtitle">Enregistrez ou importez votre premier rapport vocal !</p>
-                        </div>
                     </div>
                 </div>
             </div>
-
-            <!-- PAGE RAPPORTS -->
-            <div class="page" id="rapportsPage" style="display: none;">
-                <h1 data-i18n="reports.title">📊 Rapports finalisés</h1>
-                
-                <!-- Section Recherche -->
-                <div class="search-section">
-                    <input type="text" class="search-input" id="searchInput" data-i18n-placeholder="reports.search" placeholder="🔍 Rechercher un rapport...">
-                </div>
-
-                <!-- Stats avec bouton créer dossier -->
-                <div class="stats-section" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
-                    <div style="display: flex; gap: 30px; flex-wrap: wrap;">
-                        <span><span data-i18n="reports.stats" data-i18n-params='{"count":""}'>✅ Rapports validés :</span> <span id="rapportsCount">0</span></span>
-                        <span><span data-i18n="reports.stats.pdf" data-i18n-params='{"count":""}'>📄 PDF générés :</span> <span id="pdfCount">0</span></span>
-                    </div>
-                    <button class="action-btn" id="createFolderBtnTop" style="background: var(--gradient-main); color: white; padding: 10px 20px; border-radius: 20px; font-weight: 600; font-size: 13px; box-shadow: 0 2px 10px rgba(37, 99, 235, 0.3); transition: all 0.3s ease;" 
-                            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 15px rgba(37, 99, 235, 0.4)';" 
-                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 10px rgba(37, 99, 235, 0.3)';"
-                            onclick="window.dataManager.showCreateFolderModal()">
-                        ➕ <span data-i18n="folder.create.button">Créer un dossier</span>
-                    </button>
-                </div>
-
-                <!-- Liste des rapports -->
-                <div class="reports-list" id="rapportsList">
-                    <div class="empty-state">
-                        <div class="icon">📋</div>
-                        <p data-i18n="reports.empty">Aucun rapport finalisé</p>
-                        <p class="empty-subtitle" data-i18n="reports.empty.subtitle">Validez vos brouillons pour les voir ici !</p>
-                    </div>
-                </div>
-            </div>
-
         </div>
-    </div>
+    </section>
 
-    <!-- Scripts -->
-    <script src="js/config.js"></script>
-    <script src="js/translations.js"></script>
-    <script src="js/language-manager.js"></script>
-    <script src="js/utils.js"></script>
-    
-    <!-- Google Sheets Manager avec cache optimisé -->
-    <script>
-    class GoogleSheetsManager {
-        constructor() {
-            this.SHEET_ID = '1I2SdNqwVB3bU-h3GoYvKjPRm2WhjpPdPc77rJKML9KEr';
-            this.SHEET_NAME = 'utilisateur';
-            this.cache = {
-                users: [],
-                lastUpdate: null,
-                cacheDuration: 300000,
-                retryCount: 3,
-                retryDelay: 1000
-            };
-        }
-
-        getSheetUrl() {
-            return `https://docs.google.com/spreadsheets/d/${this.SHEET_ID}/gviz/tq?tqx=out:json&sheet=${this.SHEET_NAME}`;
-        }
-
-        async fetchUsersWithRetry(attempt = 1) {
-            try {
-                console.log(`🔄 Tentative ${attempt}/${this.cache.retryCount} - Récupération Google Sheets`);
-                
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 10000);
-                
-                const response = await fetch(this.getSheetUrl(), {
-                    signal: controller.signal,
-                    cache: 'no-cache'
-                });
-                
-                clearTimeout(timeoutId);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                
-                const textData = await response.text();
-                const jsonData = textData.substring(47).slice(0, -2);
-                const data = JSON.parse(jsonData);
-                
-                const users = this.parseSheetData(data);
-                
-                this.cache.users = users;
-                this.cache.lastUpdate = new Date();
-                this.saveCacheToStorage(users);
-                
-                console.log(`✅ ${users.length} utilisateurs récupérés (tentative ${attempt})`);
-                return users;
-                
-            } catch (error) {
-                console.error(`❌ Erreur tentative ${attempt}:`, error);
-                
-                if (attempt < this.cache.retryCount) {
-                    const delay = this.cache.retryDelay * Math.pow(2, attempt - 1);
-                    console.log(`⏳ Retry dans ${delay}ms...`);
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                    return this.fetchUsersWithRetry(attempt + 1);
-                }
-                
-                console.error(`❌ Échec définitif après ${this.cache.retryCount} tentatives`);
-                throw error;
-            }
-        }
-
-        saveCacheToStorage(users) {
-            try {
-                const cacheData = {
-                    users: users,
-                    timestamp: Date.now(),
-                    version: CONFIG.APP_VERSION || '1.0.0'
-                };
-                
-                const compressed = JSON.stringify(cacheData);
-                localStorage.setItem('sheets_cache', compressed);
-                console.log('💾 Cache Google Sheets sauvegardé');
-            } catch (error) {
-                console.warn('⚠️ Erreur sauvegarde cache:', error);
-            }
-        }
-
-        loadCacheFromStorage() {
-            try {
-                const cached = localStorage.getItem('sheets_cache');
-                if (!cached) return null;
-                
-                const data = JSON.parse(cached);
-                const age = Date.now() - data.timestamp;
-                
-                if (age < this.cache.cacheDuration) {
-                    console.log('💾 Cache localStorage utilisé');
-                    return data.users;
-                } else {
-                    console.log('⏰ Cache localStorage expiré');
-                    return data.users;
-                }
-            } catch (error) {
-                console.warn('⚠️ Erreur lecture cache:', error);
-                return null;
-            }
-        }
-
-        async fetchUsers() {
-            try {
-                return await this.fetchUsersWithRetry();
-            } catch (error) {
-                const cachedUsers = this.loadCacheFromStorage();
-                if (cachedUsers) {
-                    console.log('🔄 Fallback vers cache persistant');
-                    Utils.showToast(t('toast.network.offline'), 'info');
-                    return cachedUsers;
-                }
-                
-                console.log('🔄 Utilisation des utilisateurs par défaut');
-                return this.getDefaultUsers();
-            }
-        }
-
-        parseSheetData(data) {
-            const users = [];
+    <!-- FEATURES SECTION -->
+    <section id="features" class="features">
+        <div class="features-container">
+            <div class="section-header">
+                <h2 data-i18n-landing="landing.features.title">Pourquoi choisir notre solution ?</h2>
+                <p data-i18n-landing="landing.features.subtitle">Une technologie de pointe pour des rapports commerciaux d'exception</p>
+            </div>
             
-            if (!data.table || !data.table.rows) {
-                console.warn('⚠️ Aucune donnée trouvée dans Google Sheets');
-                return users;
-            }
-            
-            const rows = data.table.rows;
-            
-            for (let i = 1; i < rows.length; i++) {
-                const row = rows[i];
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🎤</div>
+                    <h3 data-i18n-landing="landing.feature1.title">Enregistrement vocal intelligent</h3>
+                    <p data-i18n-landing="landing.feature1.description">Enregistrez directement depuis votre mobile ou importez vos fichiers audio. Notre IA reconnaît automatiquement la langue et optimise la qualité.</p>
+                </div>
                 
-                if (!row.c || row.c.length < 5) continue;
+                <div class="feature-card">
+                    <div class="feature-icon">🤖</div>
+                    <h3 data-i18n-landing="landing.feature2.title">IA de transcription avancée</h3>
+                    <p data-i18n-landing="landing.feature2.description">Transcription précise avec reconnaissance du contexte commercial. L'IA structure automatiquement vos informations en rapport professionnel.</p>
+                </div>
                 
-                try {
-                    const user = {
-                        id: i,
-                        username: this.getCellValue(row.c[0]),
-                        password: this.getCellValue(row.c[1]),
-                        nom: this.getCellValue(row.c[2]),
-                        role: this.getCellValue(row.c[3]),
-                        statut: this.getCellValue(row.c[4]),
-                        dateCreation: this.getCellValue(row.c[5]),
-                        deviceId: this.getCellValue(row.c[6]),
-                        derniereConnexion: this.getCellValue(row.c[7]),
-                        isActive: this.getCellValue(row.c[4]) === 'actif'
-                    };
+                <div class="feature-card">
+                    <div class="feature-icon">📄</div>
+                    <h3 data-i18n-landing="landing.feature3.title">PDF automatique</h3>
+                    <p data-i18n-landing="landing.feature3.description">Génération instantanée de rapports PDF formatés, prêts à partager avec vos clients ou votre équipe. Design professionnel garanti.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">🌐</div>
+                    <h3 data-i18n-landing="landing.feature4.title">Multilingue</h3>
+                    <p data-i18n-landing="landing.feature4.description">Support de 6 langues avec traduction automatique. Travaillez avec des clients internationaux sans barrière linguistique.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">📱</div>
+                    <h3 data-i18n-landing="landing.feature5.title">PWA Mobile</h3>
+                    <p data-i18n-landing="landing.feature5.description">Application web progressive installable. Fonctionne hors ligne, synchronisation automatique, notifications push.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h3 data-i18n-landing="landing.feature6.title">Sécurisé</h3>
+                    <p data-i18n-landing="landing.feature6.description">Authentification sécurisée, limitation d'appareils, stockage local chiffré. Vos données restent privées et protégées.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- DEMO SECTION -->
+    <section id="demo" class="demo">
+        <div class="demo-container">
+            <div class="demo-content">
+                <h2 data-i18n-landing="landing.demo.title">Voyez la magie en action</h2>
+                <p data-i18n-landing="landing.demo.subtitle">De l'enregistrement vocal au rapport PDF en 3 étapes simples</p>
+                
+                <div class="demo-steps">
+                    <div class="demo-step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h3 data-i18n-landing="landing.demo.step1.title">Enregistrez</h3>
+                            <p data-i18n-landing="landing.demo.step1.description">Parlez naturellement de votre visite client</p>
+                        </div>
+                        <div class="step-visual">🎤</div>
+                    </div>
                     
-                    if (user.username && user.password) {
-                        users.push(user);
-                        console.log(`👤 Utilisateur ajouté: ${user.username} (${user.statut})`);
-                    }
+                    <div class="demo-arrow">→</div>
                     
-                } catch (error) {
-                    console.error(`❌ Erreur parsing ligne ${i}:`, error);
-                }
-            }
+                    <div class="demo-step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h3 data-i18n-landing="landing.demo.step2.title">L'IA structure</h3>
+                            <p data-i18n-landing="landing.demo.step2.description">Transcription et mise en forme automatique</p>
+                        </div>
+                        <div class="step-visual">🤖</div>
+                    </div>
+                    
+                    <div class="demo-arrow">→</div>
+                    
+                    <div class="demo-step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h3 data-i18n-landing="landing.demo.step3.title">PDF généré</h3>
+                            <p data-i18n-landing="landing.demo.step3.description">Rapport professionnel prêt à partager</p>
+                        </div>
+                        <div class="step-visual">📄</div>
+                    </div>
+                </div>
+                
+                <div class="demo-cta">
+                    <a href="app.html" class="cta-primary">
+                        <span data-i18n-landing="landing.demo.cta">Tester maintenant</span>
+                        <span class="cta-icon">→</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- BENEFITS SECTION -->
+    <section class="benefits">
+        <div class="benefits-container">
+            <div class="benefits-content">
+                <h2 data-i18n-landing="landing.benefits.title">Économisez 95% de votre temps de rédaction</h2>
+                <div class="benefits-comparison">
+                    <div class="comparison-before">
+                        <h3 data-i18n-landing="landing.benefits.before.title">❌ Avant</h3>
+                        <ul>
+                            <li data-i18n-landing="landing.benefits.before.item1">30 min de rédaction par rapport</li>
+                            <li data-i18n-landing="landing.benefits.before.item2">Risque d'oubli d'informations</li>
+                            <li data-i18n-landing="landing.benefits.before.item3">Mise en forme fastidieuse</li>
+                            <li data-i18n-landing="landing.benefits.before.item4">Rapports peu structurés</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="comparison-after">
+                        <h3 data-i18n-landing="landing.benefits.after.title">✅ Avec Rapports IA</h3>
+                        <ul>
+                            <li data-i18n-landing="landing.benefits.after.item1">30 secondes d'enregistrement</li>
+                            <li data-i18n-landing="landing.benefits.after.item2">Capture complète automatique</li>
+                            <li data-i18n-landing="landing.benefits.after.item3">PDF professionnel instantané</li>
+                            <li data-i18n-landing="landing.benefits.after.item4">Structure optimisée par l'IA</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TESTIMONIALS SECTION -->
+    <section class="testimonials">
+        <div class="testimonials-container">
+            <h2 data-i18n-landing="landing.testimonials.title">Ce que disent nos utilisateurs</h2>
+            <div class="testimonials-grid">
+                <div class="testimonial-card">
+                    <div class="testimonial-content" data-i18n-landing="landing.testimonial1.content">
+                        "Cette app a révolutionné ma façon de travailler. Plus de rapports oubliés, tout est automatique et professionnel."
+                    </div>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">AC</div>
+                        <div class="author-info">
+                            <div class="author-name" data-i18n-landing="landing.testimonial1.name">Andrea C.</div>
+                            <div class="author-role" data-i18n-landing="landing.testimonial1.role">Commercial Senior</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="testimonial-card">
+                    <div class="testimonial-content" data-i18n-landing="landing.testimonial2.content">
+                        "Incroyable ! Je gagne 2h par jour sur mes rapports. L'IA comprend parfaitement le contexte commercial."
+                    </div>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">GR</div>
+                        <div class="author-info">
+                            <div class="author-name" data-i18n-landing="landing.testimonial2.name">Guillaume R.</div>
+                            <div class="author-role" data-i18n-landing="landing.testimonial2.role">Responsable Commercial</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="testimonial-card">
+                    <div class="testimonial-content" data-i18n-landing="landing.testimonial3.content">
+                        "La fonction multilingue est parfaite pour nos clients internationaux. PDF impeccables à chaque fois."
+                    </div>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">CH</div>
+                        <div class="author-info">
+                            <div class="author-name" data-i18n-landing="landing.testimonial3.name">Corentin H.</div>
+                            <div class="author-role" data-i18n-landing="landing.testimonial3.role">Business Developer</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- PRICING SECTION -->
+    <section id="pricing" class="pricing">
+        <div class="pricing-container">
+            <div class="section-header">
+                <h2 data-i18n-landing="landing.pricing.title">Tarifs simples et transparents</h2>
+                <p data-i18n-landing="landing.pricing.subtitle">Choisissez la formule qui correspond à vos besoins</p>
+            </div>
             
-            return users;
-        }
+            <div class="pricing-grid">
+                <div class="pricing-card">
+                    <div class="pricing-header">
+                        <h3 data-i18n-landing="landing.pricing.starter.title">Starter</h3>
+                        <div class="pricing-price">
+                            <span class="price-amount" data-i18n-landing="landing.pricing.starter.price">Gratuit</span>
+                        </div>
+                        <p class="pricing-description" data-i18n-landing="landing.pricing.starter.description">Parfait pour découvrir</p>
+                    </div>
+                    <div class="pricing-features">
+                        <div class="feature">✅ <span data-i18n-landing="landing.pricing.starter.feature1">5 rapports/mois</span></div>
+                        <div class="feature">✅ <span data-i18n-landing="landing.pricing.starter.feature2">Transcription IA</span></div>
+                        <div class="feature">✅ <span data-i18n-landing="landing.pricing.starter.feature3">PDF automatique</span></div>
+                        <div class="feature">✅ <span data-i18n-landing="landing.pricing.starter.feature4">2 appareils max</span></div>
+                        <div class="feature">❌ <span data-i18n-landing="landing.pricing.starter.feature5">Traduction</span></div>
+                        <div class="feature">❌ <span data-i18n-landing="landing.pricing.starter.feature6">Dossiers</span></div>
+                    </div>
+                    <a href="app.html" class="pricing-cta secondary" data-i18n-landing="landing.pricing.starter.cta">Commencer gratuitement</a>
+                </div>
+                
+                <div class="pricing-card featured">
+                    <div class="pricing-badge" data-i18n-landing="landing.pricing.pro.badge">Plus populaire</div>
+                    <div class="pricing-header">
+                        <h3 data-i18n-landing="landing.pricing.pro.title">Pro</h3>
+                        <div class="pricing-price">
+                            <span class="price-amount" data-i18n-landing="landing.pricing.pro.price">49€</span>
+                            <span class="price-period" data-i18n-landing="landing.pricing.pro.period">/mois</span>
+                        </div>
+                        <p class="pricing-description" data-i18n-landing="landing.pricing.pro.description">Pour les commerciaux actifs</p>
+                    </div>
+                    <div class="pricing-features">
+                        <div class="feature">✅ <span data-i18n-landing="landing.pricing.pro.feature1">Rapports illimités</span></div>
+                        <div class="feature">✅ <span data-i18n-landing="landing.pricing.pro.feature2">Traduction 6 langues</span></div>
+                        <div class="feature">✅ <span data-i18n-landing="landing.pricing.pro.feature3">Dossiers organisés</span></div>
+                        <div class="feature">✅ <span data-i18n-landing="landing.pricing.pro.feature4">Partage équipe</span></div>
+                        <div class="feature">✅ <span data-i18n-landing="landing.pricing.pro.feature5">Support prioritaire</span></div>
+                        <div class="feature">✅ <span data-i18n-landing="landing.pricing.pro.feature6">Intégrations</span></div>
+                    </div>
+                    <a href="app.html" class="pricing-cta primary" data-i18n-landing="landing.pricing.pro.cta">Essayer 14 jours gratuits</a>
+                </div>
+                
+                <div class="pricing-card">
+                    <div class="pricing-header">
+                        <h3 data-i18n-landing="landing.pricing.enterprise.title">Enterprise</h3>
+                        <div class="pricing-price">
+                            <span class="price-amount" data-i18n-landing="landing.pricing.enterprise.price">149€</span>
+                            <span class="price-period" data-i18n-landing="landing.pricing.enterprise.period">/mois</span>
+                        </div>
+                        <p class="pricing-description" data-i18n-landing="landing.pricing.enterprise.description">Pour les équipes</p>
+                    </div>
+                    <div class="pricing-features">
+                        <div class="feature">✅ <span data-i18n-landing="landing.pricing.enterprise.feature1">Tout du Pro</span></div>
+                        <div class="feature">✅ <span data-i18n-landing="landing.pricing.enterprise.feature2">Utilisateurs illimités</span></div>
+                        <div class="feature">✅ <span data-i18n-landing="landing.pricing.enterprise.feature3">API personnalisée</span></div>
+                        <div class="feature">✅ <span data-i18n-landing="landing.pricing.enterprise.feature4">Intégration CRM</span></div>
+                        <div class="feature">✅ <span data-i18n-landing="landing.pricing.enterprise.feature5">Formation équipe</span></div>
+                        <div class="feature">✅ <span data-i18n-landing="landing.pricing.enterprise.feature6">SLA 99.9%</span></div>
+                    </div>
+                    <a href="mailto:contact@vocalia.com" class="pricing-cta secondary" data-i18n-landing="landing.pricing.enterprise.cta">Nous contacter</a>
+                </div>
+            </div>
+        </div>
+    </section>
 
-        getCellValue(cell) {
-            if (!cell) return null;
-            if (cell.v !== undefined) return cell.v;
-            if (cell.f !== undefined) return cell.f;
-            return null;
-        }
+    <!-- CTA FINAL -->
+    <section class="final-cta">
+        <div class="final-cta-container">
+            <div class="final-cta-content">
+                <h2 data-i18n-landing="landing.final.title">Prêt à révolutionner vos rapports ?</h2>
+                <p data-i18n-landing="landing.final.subtitle">Rejoignez les centaines de commerciaux qui ont déjà adopté l'IA pour leurs rapports</p>
+                <div class="final-cta-buttons">
+                    <a href="app.html" class="cta-primary large">
+                        <span data-i18n-landing="landing.final.cta">Commencer maintenant</span>
+                        <span class="cta-icon">→</span>
+                    </a>
+                </div>
+                <div class="final-cta-note" data-i18n-landing="landing.final.note">
+                    ✅ Gratuit • ✅ Sans engagement • ✅ Configuration en 2 minutes
+                </div>
+            </div>
+        </div>
+    </section>
 
-        getDefaultUsers() {
-            return [
-                {
-                    id: 1,
-                    username: "commercial1",
-                    password: "pass123",
-                    nom: "Jean Dupont",
-                    role: "commercial",
-                    statut: "inactif",
-                    deviceId: null,
-                    isActive: false,
-                    dateCreation: "2024-09-23"
-                },
-                {
-                    id: 2,
-                    username: "andreac",
-                    password: "pass123",
-                    nom: "Andrea Ciechelski",
-                    role: "commercial",
-                    statut: "actif",
-                    deviceId: null,
-                    isActive: true,
-                    dateCreation: "2024-09-24"
-                },
-                 {
-                    id: 3,
-                    username: "guillaumer",
-                    password: "pass123",
-                    nom: "Guillaume Renouard",
-                    role: "commercial",
-                    statut: "actif",
-                    deviceId: null,
-                    isActive: true,
-                    dateCreation: "2025-10-5"
-                }
-            ];
-        }
-
-        async getUsers(forceRefresh = false) {
-            if (!forceRefresh && this.cache.users.length > 0 && this.cache.lastUpdate) {
-                const timeDiff = new Date() - this.cache.lastUpdate;
-                if (timeDiff < this.cache.cacheDuration) {
-                    console.log('🔄 Cache mémoire utilisé');
-                    return this.cache.users;
-                }
-            }
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <div class="footer-logo">
+                        <span class="nav-title-gradient">VOCALIA</span>
+                    </div>
+                    <p data-i18n-landing="landing.footer.tagline">Du code et de l'IA pour donner vie à vos rapports commerciaux</p>
+                </div>
+                
+                <div class="footer-links">
+                    <div class="footer-section">
+                        <h4 data-i18n-landing="landing.footer.product.title">Produit</h4>
+                        <a href="#features" data-i18n-landing="landing.footer.product.features">Fonctionnalités</a>
+                        <a href="#pricing" data-i18n-landing="landing.footer.product.pricing">Tarifs</a>
+                        <a href="app.html" data-i18n-landing="landing.footer.product.app">Application</a>
+                    </div>
+                    
+                    <div class="footer-section">
+                        <h4 data-i18n-landing="landing.footer.support.title">Support</h4>
+                        <a href="mailto:support@vocalia.com" data-i18n-landing="landing.footer.support.contact">Contact</a>
+                        <a href="#" data-i18n-landing="landing.footer.support.docs">Documentation</a>
+                        <a href="#" data-i18n-landing="landing.footer.support.faq">FAQ</a>
+                    </div>
+                    
+                    <div class="footer-section">
+                        <h4 data-i18n-landing="landing.footer.legal.title">Légal</h4>
+                        <a href="#" data-i18n-landing="landing.footer.legal.privacy">Confidentialité</a>
+                        <a href="#" data-i18n-landing="landing.footer.legal.terms">CGU</a>
+                        <a href="#" data-i18n-landing="landing.footer.legal.mentions">Mentions légales</a>
+                    </div>
+                </div>
+            </div>
             
-            if (!forceRefresh) {
-                const cachedUsers = this.loadCacheFromStorage();
-                if (cachedUsers) {
-                    this.cache.users = cachedUsers;
-                    this.cache.lastUpdate = new Date();
-                    return cachedUsers;
-                }
-            }
-            
-            return await this.fetchUsers();
-        }
+            <div class="footer-bottom">
+                <p data-i18n-landing="landing.footer.copyright">&copy; 2024 Rapports IA. Tous droits réservés.</p>
+                <div class="footer-social">
+                    <span data-i18n-landing="landing.footer.made">Fait avec ❤️ en France</span>
+                </div>
+            </div>
+        </div>
+    </footer>
 
-        async findUser(username) {
-            const users = await this.getUsers();
-            return users.find(user => user.username === username);
-        }
-
-        async authenticateUser(username, password) {
-            try {
-                console.log(`🔐 Tentative d'authentification: ${username}`);
-                
-                const user = await this.findUser(username);
-                
-                if (!user) {
-                    console.log(`❌ Utilisateur introuvable: ${username}`);
-                    return { success: false, error: 'Utilisateur introuvable' };
-                }
-                
-                if (user.password !== password) {
-                    console.log(`❌ Mot de passe incorrect pour: ${username}`);
-                    return { success: false, error: 'Mot de passe incorrect' };
-                }
-                
-                if (!user.isActive || user.statut !== 'actif') {
-                    console.log(`❌ Compte inactif: ${username}`);
-                    return { 
-                        success: false, 
-                        error: 'Compte suspendu - Contactez l\'administrateur pour réactiver votre abonnement' 
-                    };
-                }
-                
-                console.log(`✅ Authentification réussie: ${username}`);
-                return { success: true, user: user };
-                
-            } catch (error) {
-                console.error('❌ Erreur lors de l\'authentification:', error);
-                return { 
-                    success: false, 
-                    error: 'Erreur de connexion - Vérifiez votre connexion internet' 
-                };
-            }
-        }
-
-        async updateUserDeviceId(username, deviceId) {
-            console.log(`📱 Association device ${deviceId} à l'utilisateur ${username}`);
-            const users = await this.getUsers();
-            const user = users.find(u => u.username === username);
-            if (user) {
-                user.deviceId = deviceId;
-                this.saveCacheToStorage(users);
-                return true;
-            }
-            return false;
-        }
-
-        async updateLastConnection(username) {
-            console.log(`⏰ Mise à jour dernière connexion: ${username}`);
-            const users = await this.getUsers();
-            const user = users.find(u => u.username === username);
-            if (user) {
-                user.derniereConnexion = new Date().toISOString();
-                this.saveCacheToStorage(users);
-                return true;
-            }
-            return false;
-        }
-
-        async refreshCache() {
-            console.log('🔄 Actualisation forcée du cache utilisateurs');
-            return await this.getUsers(true);
-        }
-
-        async getUserStats() {
-            const users = await this.getUsers();
-            return {
-                total: users.length,
-                actifs: users.filter(u => u.isActive).length,
-                inactifs: users.filter(u => !u.isActive).length,
-                commerciaux: users.filter(u => u.role === 'commercial').length,
-                managers: users.filter(u => u.role === 'manager').length
-            };
-        }
-    }
-
-    window.GoogleSheetsManager = GoogleSheetsManager;
-    </script>
+    <!-- SCRIPTS -->
+    <script src="js/translations-landing.js"></script>
+    <script src="js/language-manager-landing.js"></script>
     
-    <script src="js/audio-manager.js"></script>
-    <script src="js/data-manager.js"></script>
-    <script src="js/app.js"></script>
-    
-    <!-- Effet de particules pour la page de connexion -->
     <script>
-        // Effet de particules subtil pour la page de connexion
-        function createNetworkEffect() {
-            const loginPage = document.getElementById('loginPage');
-            if (!loginPage || loginPage.style.display === 'none') return;
+        // Initialisation du gestionnaire de langues pour la landing
+        document.addEventListener('DOMContentLoaded', function() {
+            // Créer le gestionnaire de langues
+            window.languageManagerLanding = new LanguageManagerLanding();
             
-            const particles = document.createElement('div');
-            particles.className = 'network-particles';
-            particles.style.cssText = `
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                pointer-events: none;
-                z-index: 0;
-            `;
+            // Injecter les styles
+            window.languageManagerLanding.injectStyles();
             
-            // Créer quelques particules subtiles
-            for (let i = 0; i < 8; i++) {
-                const particle = document.createElement('div');
-                particle.style.cssText = `
-                    position: absolute;
-                    width: 4px;
-                    height: 4px;
-                    background: rgba(255, 255, 255, 0.3);
-                    border-radius: 50%;
-                    top: ${Math.random() * 100}%;
-                    left: ${Math.random() * 100}%;
-                    animation: particleFloat ${3 + Math.random() * 4}s ease-in-out infinite;
-                    animation-delay: ${Math.random() * 2}s;
-                `;
-                particles.appendChild(particle);
+            // Créer et insérer le sélecteur de langue dans la navbar
+            const langContainer = document.getElementById('languageSelectorLanding');
+            if (langContainer) {
+                const selector = window.languageManagerLanding.createLanguageSelector();
+                langContainer.appendChild(selector);
             }
             
-            loginPage.appendChild(particles);
-        }
+            // Appliquer les traductions
+            window.languageManagerLanding.updateUI();
+            
+            console.log('✅ Landing page multilingue initialisée');
+        });
         
-        // Ajouter l'animation CSS pour les particules
-        const particleStyle = document.createElement('style');
-        particleStyle.textContent = `
-            @keyframes particleFloat {
-                0%, 100% { 
-                    transform: translateY(0px) translateX(0px);
-                    opacity: 0.3;
+        // Smooth scroll pour les liens d'ancrage
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
                 }
-                50% { 
-                    transform: translateY(-20px) translateX(10px);
-                    opacity: 0.8;
-                }
-            }
-        `;
-        document.head.appendChild(particleStyle);
-        
-        // Initialiser l'effet au chargement
-        document.addEventListener('DOMContentLoaded', createNetworkEffect);
-    </script>
-
-    <!-- Service Worker -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('service-worker.js')
-                    .then(registration => console.log('SW registered'))
-                    .catch(err => console.log('SW registration failed'));
             });
-        }
+        });
+
+        // Animation des stats au scroll
+        const observerOptions = {
+            threshold: 0.5,
+            rootMargin: '0px 0px -100px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('animate');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.stat, .feature-card').forEach(el => {
+            observer.observe(el);
+        });
     </script>
 </body>
 </html>

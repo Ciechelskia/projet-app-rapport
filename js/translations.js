@@ -109,7 +109,7 @@ const TRANSLATIONS = {
         'report.title.default': 'Rapport généré - En attente de validation',
         'loading': 'Chargement...',
         'cache.info': 'Informations de cache affichées dans la console',
-        'folder.create.button': '➕ Créer un dossier',
+        'folder.create.button': 'Créer un dossier',
         'folder.none': 'Sans dossier',
         'folder.empty': 'Aucun rapport dans ce dossier',
         'folder.action.rename': 'Renommer',
@@ -149,6 +149,8 @@ const TRANSLATIONS = {
         'report.original.view': 'Voir l\'original',
         'reports.folders': 'Dossiers',
         'reports.action.back': 'Retour',
+        'folder.reports.count': '{count} rapport',
+        'folder.reports.count.plural': '{count} rapports',
     },
     
     en: {
@@ -260,7 +262,7 @@ const TRANSLATIONS = {
         'report.title.default': 'Generated report - Pending validation',
         'loading': 'Loading...',
         'cache.info': 'Cache information displayed in console',
-        'folder.create.button': '➕ Create folder',
+        'folder.create.button': 'Create folder',
         'folder.none': 'No folder',
         'folder.empty': 'No reports in this folder',
         'folder.action.rename': 'Rename',
@@ -300,6 +302,8 @@ const TRANSLATIONS = {
         'report.original.view': 'View original',
         'reports.folders': 'Folders',
         'reports.action.back': 'Back',
+         'folder.reports.count': '{count} report',
+        'folder.reports.count.plural': '{count} reports',
     },
     
     zh: {
@@ -411,7 +415,7 @@ const TRANSLATIONS = {
         'report.title.default': '已生成报告 - 待验证',
         'loading': '加载中...',
         'cache.info': '缓存信息显示在控制台中',
-        'folder.create.button': '➕ 创建文件夹',
+        'folder.create.button': '创建文件夹',
         'folder.none': '无文件夹',
         'folder.empty': '此文件夹中没有报告',
         'folder.action.rename': '重命名',
@@ -451,6 +455,8 @@ const TRANSLATIONS = {
         'report.original.view': '查看原文',
         'reports.folders': '文件夹',
         'reports.action.back': '返回',
+        'folder.reports.count': '{count}份报告',
+        'folder.reports.count.plural': '{count}份报告',
     },
     
     ja: {
@@ -562,7 +568,7 @@ const TRANSLATIONS = {
         'report.title.default': '生成された報告書 - 検証待ち',
         'loading': '読み込み中...',
         'cache.info': 'キャッシュ情報がコンソールに表示されます',
-        'folder.create.button': '➕ フォルダを作成',
+        'folder.create.button': 'フォルダを作成',
         'folder.none': 'フォルダなし',
         'folder.empty': 'このフォルダには報告書がありません',
         'folder.action.rename': '名前変更',
@@ -602,7 +608,9 @@ const TRANSLATIONS = {
         'report.original.view': '元のレポートを表示',
         'reports.folders': 'フォルダ',
         'reports.action.back': '戻る',
-
+        'folder.reports.count': '{count}件のレポート',
+        'folder.reports.count.plural': '{count}件のレポート',
+    
     }
 };
 
