@@ -426,61 +426,93 @@ getReportsCountText(count) {
     }
 
     async confirmValidateBrouillon(brouillonId, buttonElement = null) {
-        let selectedFolderId = null;
+    let selectedFolderId = null;
 
-        if (buttonElement) {
-            const modal = buttonElement.closest('[data-modal]');
-            const select = modal.querySelector('#validateFolderSelect');
-            selectedFolderId = select.value || null;
-            modal.remove();
+    if (buttonElement) {
+        const modal = buttonElement.closest('[data-modal]');
+        const select = modal.querySelector('#validateFolderSelect');
+        selectedFolderId = select.value || null;
+        modal.remove();
+    }
+
+    const data = this.loadAppData();
+    const brouillonIndex = data.brouillons.findIndex(b => b.id === brouillonId);
+    
+    if (brouillonIndex !== -1) {
+        const brouillon = data.brouillons[brouillonIndex];
+        
+        const rapport = {
+            id: Utils.generateId('rapport_'),
+            title: brouillon.title || `${t('new.report')} - ${new Date().toLocaleDateString()}`,
+            content: brouillon.generatedReport,
+            validatedAt: new Date().toISOString(),
+            createdAt: brouillon.createdAt,
+            folderId: selectedFolderId,
+            sharedWith: [],
+            status: 'validated',
+            isModified: brouillon.isModified,
+            sourceType: brouillon.sourceType,
+            sourceInfo: brouillon.sourceInfo,
+            hasPdf: false,
+            pdfGenerated: false
+        };
+
+        try {
+            Utils.showToast(t('toast.report.pdf.generating'), 'info');
+            const pdf = await Utils.generatePDF(rapport.title, rapport.content);
+            rapport.pdfData = pdf.output('datauristring');
+            rapport.hasPdf = true;
+            rapport.pdfGenerated = true;
+            Utils.showToast(t('toast.report.pdf.generated'), 'success');
+        } catch (error) {
+            console.error('Erreur génération PDF:', error);
+            Utils.showToast(t('toast.report.pdf.error'), 'error');
         }
 
-        const data = this.loadAppData();
-        const brouillonIndex = data.brouillons.findIndex(b => b.id === brouillonId);
+        data.rapports = data.rapports || [];
+        data.rapports.unshift(rapport);
+        data.brouillons.splice(brouillonIndex, 1);
         
-        if (brouillonIndex !== -1) {
-            const brouillon = data.brouillons[brouillonIndex];
+        this.saveAppData(data);
+        
+        this.updateBrouillonsUI(data.brouillons);
+        this.updateRapportsUI(data.rapports);
+        
+        Utils.showToast(t('toast.draft.validated'), 'success');
+        
+        // ✅ NOUVEAU : Incrémenter le compteur dans Supabase et recharger le profil
+        try {
+            const currentUser = window.appManager?.getCurrentUser();
             
-            const rapport = {
-                id: Utils.generateId('rapport_'),
-                title: brouillon.title || `${t('new.report')} - ${new Date().toLocaleDateString()}`,
-                content: brouillon.generatedReport,
-                validatedAt: new Date().toISOString(),
-                createdAt: brouillon.createdAt,
-                folderId: selectedFolderId,
-                sharedWith: [],
-                status: 'validated',
-                isModified: brouillon.isModified,
-                sourceType: brouillon.sourceType,
-                sourceInfo: brouillon.sourceInfo,
-                hasPdf: false,
-                pdfGenerated: false
-            };
-
-            try {
-                Utils.showToast(t('toast.report.pdf.generating'), 'info');
-                const pdf = await Utils.generatePDF(rapport.title, rapport.content);
-                rapport.pdfData = pdf.output('datauristring');
-                rapport.hasPdf = true;
-                rapport.pdfGenerated = true;
-                Utils.showToast(t('toast.report.pdf.generated'), 'success');
-            } catch (error) {
-                console.error('Erreur génération PDF:', error);
-                Utils.showToast(t('toast.report.pdf.error'), 'error');
+            if (currentUser && window.supabaseClient) {
+                // 1. Incrémenter reports_this_month pour les utilisateurs FREE
+                if (currentUser.subscription_plan === 'free') {
+                    const { error: updateError } = await window.supabaseClient
+                        .from('profiles')
+                        .update({ 
+                            reports_this_month: (currentUser.reports_this_month || 0) + 1
+                        })
+                        .eq('id', currentUser.id);
+                    
+                    if (updateError) {
+                        console.error('❌ Erreur incrémentation compteur:', updateError);
+                    } else {
+                        console.log('✅ Compteur de rapports incrémenté');
+                    }
+                }
+                
+                // 2. Recharger le profil pour mettre à jour l'UI (badge, jauge, etc.)
+                if (window.appManager?.profileManager) {
+                    await window.appManager.profileManager.loadProfile(currentUser.id);
+                    console.log('✅ Profil rechargé avec nouveau compteur');
+                }
             }
-
-            data.rapports = data.rapports || [];
-            data.rapports.unshift(rapport);
-            data.brouillons.splice(brouillonIndex, 1);
-            
-            this.saveAppData(data);
-            
-            this.updateBrouillonsUI(data.brouillons);
-            this.updateRapportsUI(data.rapports);
-            
-            Utils.showToast(t('toast.draft.validated'), 'success');
+        } catch (error) {
+            console.error('❌ Erreur mise à jour profil après validation:', error);
+            // Ne pas bloquer l'utilisateur, juste logger l'erreur
         }
     }
+}
 
     // === GESTION DES RAPPORTS FINALISÉS ===
 

@@ -7,7 +7,7 @@ class AppManager {
         // Initialisation des managers
         this.audioManager = new AudioManager();
         this.dataManager = new DataManager();
-        this.sheetsManager = new GoogleSheetsManager();
+        this.profileManager = null; // Sera créé au besoin
         
         // Initialiser le gestionnaire de langues
         window.languageManager = new LanguageManager();
@@ -23,42 +23,35 @@ class AppManager {
 
     // === INITIALISATION ===
 
-     initializeApp() {
-    this.logout();
-    this.showPage(PAGES.LOGIN);
-    
-    // Ajouter les styles CSS pour les animations toast
-    this.addToastStyles();
-    
-    // IMPORTANT : Initialiser la langue AVANT tout le reste
-    console.log('🔄 Initialisation de la langue...');
-    this.languageManager.init(); // ← LIGNE CRITIQUE AJOUTÉE ICI
-    console.log('✅ Langue initialisée:', this.languageManager.getCurrentLanguage());
-    
-    // Injecter les styles du sélecteur de langue
-    this.languageManager.injectStyles();
-    
-    // Créer et insérer les sélecteurs de langue (login + header)
-    this.initLanguageSelector();
-    
-    // Mettre à jour l'interface avec la langue détectée
-    this.languageManager.updateUI();
-    
-    // Écouter les changements de langue
-    window.addEventListener('languageChanged', (e) => {
-        this.onLanguageChanged(e.detail.language);
-    });
-    
-    // Charger les utilisateurs en mémoire
-    this.loadUsersToMemory();
-}
-
-    // Charger les utilisateurs depuis USERS_DB dans la mémoire
-    loadUsersToMemory() {
-        if (typeof USERS_DB !== 'undefined') {
-            console.log(`📋 ${USERS_DB.length} utilisateurs chargés depuis USERS_DB`);
-        } else {
-            console.warn('⚠️ USERS_DB non défini dans config.js');
+    initializeApp() {
+        this.logout();
+        this.showPage(PAGES.LOGIN);
+        
+        // Ajouter les styles CSS pour les animations toast
+        this.addToastStyles();
+        
+        // IMPORTANT : Initialiser la langue AVANT tout le reste
+        console.log('🔄 Initialisation de la langue...');
+        this.languageManager.init();
+        console.log('✅ Langue initialisée:', this.languageManager.getCurrentLanguage());
+        
+        // Injecter les styles du sélecteur de langue
+        this.languageManager.injectStyles();
+        
+        // Créer et insérer les sélecteurs de langue (login + header)
+        this.initLanguageSelector();
+        
+        // Mettre à jour l'interface avec la langue détectée
+        this.languageManager.updateUI();
+        
+        // Écouter les changements de langue
+        window.addEventListener('languageChanged', (e) => {
+            this.onLanguageChanged(e.detail.language);
+        });
+        
+        // Initialiser Supabase si disponible
+        if (typeof initSupabase === 'function') {
+            initSupabase();
         }
     }
 
@@ -91,6 +84,8 @@ class AppManager {
             this.loadBrouillonsData();
         } else if (this.currentPage === PAGES.RAPPORTS) {
             this.loadRapportsData();
+        } else if (this.currentPage === PAGES.PROFIL) {
+            this.loadProfilData();
         }
         
         // Mettre à jour le titre de la page
@@ -137,6 +132,7 @@ class AppManager {
     bindNavigationEvents() {
         const navBrouillon = document.getElementById('navBrouillon');
         const navRapports = document.getElementById('navRapports');
+        const navProfil = document.getElementById('navProfil');
         const logoutBtn = document.getElementById('logoutBtn');
 
         if (navBrouillon) {
@@ -151,6 +147,12 @@ class AppManager {
             });
         }
 
+        if (navProfil) {
+            navProfil.addEventListener('click', () => {
+                this.showPage(PAGES.PROFIL);
+            });
+        }
+
         if (logoutBtn) {
             logoutBtn.addEventListener('click', () => {
                 this.logout();
@@ -162,7 +164,7 @@ class AppManager {
 
     showPage(pageId) {
         // Masquer toutes les pages
-        ['loginPage', 'brouillonPage', 'rapportsPage'].forEach(id => {
+        ['loginPage', 'brouillonPage', 'rapportsPage', 'profilPage'].forEach(id => {
             const page = document.getElementById(id);
             if (page) page.style.display = 'none';
         });
@@ -188,6 +190,8 @@ class AppManager {
             this.loadBrouillonsData();
         } else if (pageId === PAGES.RAPPORTS) {
             this.loadRapportsData();
+        } else if (pageId === PAGES.PROFIL) {
+            this.loadProfilData();
         }
     }
 
@@ -202,10 +206,13 @@ class AppManager {
         } else if (this.currentPage === PAGES.RAPPORTS) {
             const navRapports = document.getElementById('navRapports');
             if (navRapports) navRapports.classList.add('active');
+        } else if (this.currentPage === PAGES.PROFIL) {
+            const navProfil = document.getElementById('navProfil');
+            if (navProfil) navProfil.classList.add('active');
         }
     }
 
-    // === AUTHENTIFICATION LOCALE (USERS_DB) ===
+    // === AUTHENTIFICATION SUPABASE ===
 
     async handleLogin() {
         const usernameEl = document.getElementById('username');
@@ -216,11 +223,11 @@ class AppManager {
 
         if (!usernameEl || !passwordEl) return;
 
-        const username = usernameEl.value.trim();
+        const emailOrUsername = usernameEl.value.trim();
         const password = passwordEl.value.trim();
 
         // Validation
-        if (!username || !password) {
+        if (!emailOrUsername || !password) {
             this.showError(t('login.error.empty'));
             return;
         }
@@ -231,71 +238,112 @@ class AppManager {
         if (loginBtn) loginBtn.disabled = true;
 
         try {
-            // Authentification locale via USERS_DB
-            console.log('🔐 Authentification locale via USERS_DB...');
-            
-            // Chercher l'utilisateur dans USERS_DB
-            const user = USERS_DB.find(u => u.username === username);
-            
-            if (!user) {
-                throw new Error(t('login.error.notfound'));
-            }
-            
-            if (user.password !== password) {
-                throw new Error(t('login.error.wrongpass'));
-            }
-            
-            if (!user.isActive) {
-                throw new Error(t('login.error.inactive'));
+            console.log('🔐 Connexion avec Supabase Auth...');
+
+            // Vérifier que Supabase est initialisé
+            if (!window.supabaseClient) {
+                throw new Error('Supabase non initialisé');
             }
 
-            // Vérification Device ID - Maximum 2 appareils
-            const deviceId = Utils.generateDeviceId();
+            // 1. Connexion avec Supabase Auth
+            const { data: authData, error: authError } = await window.supabaseClient.auth.signInWithPassword({
+                email: emailOrUsername,
+                password: password
+            });
 
-            // Récupérer les appareils enregistrés depuis localStorage (car USERS_DB est statique)
-            const storageKey = `user_devices_${username}`;
-            let registeredDevices = [];
-            
-            try {
-                const stored = localStorage.getItem(storageKey);
-                if (stored) {
-                    registeredDevices = JSON.parse(stored);
+            if (authError) {
+                console.error('❌ Erreur auth:', authError);
+                
+                if (authError.message.includes('Invalid login credentials')) {
+                    throw new Error(t('login.error.wrongpass'));
                 }
-            } catch (e) {
-                console.warn('Erreur lecture devices:', e);
-                registeredDevices = [];
+                
+                if (authError.message.includes('Email not confirmed')) {
+                    throw new Error('Email non confirmé. Vérifiez votre boîte mail.');
+                }
+                
+                throw new Error(authError.message);
             }
 
-            // Vérifier si l'appareil actuel est déjà enregistré
-            const isDeviceRegistered = registeredDevices.includes(deviceId);
+            console.log('✅ Authentification réussie:', authData);
 
-            // Si l'appareil n'est pas enregistré et qu'on a déjà 2 appareils
-            if (!isDeviceRegistered && registeredDevices.length >= 2) {
-                throw new Error(t('login.error.device.limit'));
+            // 2. Récupérer le profil depuis la table profiles
+            console.log('🔍 Récupération du profil pour user ID:', authData.user.id);
+
+            const { data: profile, error: profileError } = await window.supabaseClient
+                .from('profiles')
+                .select('*')
+                .eq('id', authData.user.id)
+                .single();
+
+            if (profileError) {
+                console.error('❌ Erreur récupération profil:', profileError);
+                console.error('❌ Détails erreur:', {
+                    message: profileError.message,
+                    details: profileError.details,
+                    hint: profileError.hint,
+                    code: profileError.code
+                });
+                
+                if (profileError.code === 'PGRST116') {
+                    throw new Error('Votre profil n\'existe pas. Veuillez vous réinscrire.');
+                }
+                
+                throw new Error(`Impossible de récupérer votre profil: ${profileError.message}`);
             }
 
-            // Enregistrer le nouvel appareil si pas encore enregistré
-            if (!isDeviceRegistered) {
-                registeredDevices.push(deviceId);
-                localStorage.setItem(storageKey, JSON.stringify(registeredDevices));
-                console.log(`✅ Device ${registeredDevices.length}/2 enregistré pour ${username}`);
+            console.log('✅ Profil chargé:', profile);
+
+            // 3. Vérifier Device ID (2 appareils max)
+            const deviceId = Utils.generateDeviceId();
+            let deviceIds = profile.device_ids || [];
+
+            // Si l'appareil n'est pas enregistré
+            if (!deviceIds.includes(deviceId)) {
+                // Si limite atteinte (2 appareils max)
+                if (deviceIds.length >= 2) {
+                    throw new Error(t('login.error.device.limit'));
+                }
+
+                // Ajouter le nouvel appareil
+                deviceIds.push(deviceId);
+
+                // Mettre à jour dans Supabase
+                const { error: updateError } = await window.supabaseClient
+                    .from('profiles')
+                    .update({ device_ids: deviceIds })
+                    .eq('id', authData.user.id);
+
+                if (updateError) {
+                    console.error('❌ Erreur mise à jour devices:', updateError);
+                } else {
+                    console.log(`✅ Device ${deviceIds.length}/2 enregistré`);
+                }
             } else {
-                console.log(`✅ Device déjà enregistré (${registeredDevices.indexOf(deviceId) + 1}/2)`);
+                console.log(`✅ Device déjà enregistré (${deviceIds.indexOf(deviceId) + 1}/2)`);
             }
 
-            // Connexion réussie
+            // 4. Créer l'objet utilisateur pour l'app
             this.currentUser = {
-                ...user,
-                deviceId: JSON.stringify(registeredDevices),
+                id: authData.user.id,
+                email: authData.user.email,
+                nom: `${profile.first_name} ${profile.last_name}`,
+                first_name: profile.first_name,
+                last_name: profile.last_name,
+                role: 'commercial', // Par défaut
+                subscription_plan: profile.subscription_plan,
+                reports_this_month: profile.reports_this_month,
+                deviceId: JSON.stringify(deviceIds),
                 loginTime: new Date().toISOString()
             };
 
+            // 5. Afficher l'interface
             this.updateUserInterface();
             this.showPage(PAGES.BROUILLON);
-            Utils.showToast(t('login.welcome', { name: this.currentUser.nom }), 'success');
+            Utils.showToast(t('login.welcome', { name: profile.first_name }), 'success');
 
         } catch (error) {
-            console.error('❌ Erreur lors de l\'authentification:', error);
+            console.error('❌ Erreur lors de la connexion:', error);
             this.showError(error.message);
         } finally {
             if (loadingDiv) loadingDiv.style.display = 'none';
@@ -342,7 +390,17 @@ class AppManager {
         }
     }
 
-    logout() {
+    async logout() {
+        // Déconnexion Supabase
+        if (window.supabaseClient) {
+            try {
+                await window.supabaseClient.auth.signOut();
+                console.log('✅ Déconnexion Supabase');
+            } catch (error) {
+                console.error('❌ Erreur déconnexion:', error);
+            }
+        }
+        
         this.currentUser = null;
         
         // Reset audio manager
@@ -374,6 +432,41 @@ class AppManager {
         this.dataManager.updateRapportsUI(rapports);
     }
 
+    async loadProfilData() {
+        if (!this.currentUser) return;
+        
+        // Créer le ProfileManager si inexistant
+        if (!this.profileManager) {
+            this.profileManager = new ProfileManager();
+            
+            // Binder les événements
+            const saveBtn = document.getElementById('saveProfileBtn');
+            const upgradeBtn = document.getElementById('upgradeBtn');
+            const deleteBtn = document.getElementById('deleteAccountBtn');
+            
+            if (saveBtn) {
+                saveBtn.addEventListener('click', () => {
+                    this.profileManager.saveProfile();
+                });
+            }
+            
+            if (upgradeBtn) {
+                upgradeBtn.addEventListener('click', () => {
+                    this.profileManager.handleUpgrade();
+                });
+            }
+            
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', () => {
+                    this.profileManager.deleteAccount();
+                });
+            }
+        }
+        
+        // Charger le profil
+        await this.profileManager.loadProfile(this.currentUser.id);
+    }
+
     // === MÉTHODES PUBLIQUES ===
 
     getCurrentUser() {
@@ -386,10 +479,6 @@ class AppManager {
 
     getAudioManager() {
         return this.audioManager;
-    }
-
-    getSheetsManager() {
-        return this.sheetsManager;
     }
 
     // Redirection pour compatibilité
@@ -409,34 +498,29 @@ class AppManager {
 document.addEventListener('DOMContentLoaded', function() {
     // Vérification des dépendances
     if (typeof CONFIG === 'undefined') {
-        console.error('CONFIG non défini. Vérifiez que config.js est chargé.');
-        return;
-    }
-
-    if (typeof USERS_DB === 'undefined') {
-        console.error('USERS_DB non défini. Vérifiez que config.js contient USERS_DB.');
+        console.error('❌ CONFIG non défini. Vérifiez que config.js est chargé.');
         return;
     }
 
     if (typeof Utils === 'undefined') {
-        console.error('Utils non défini. Vérifiez que utils.js est chargé.');
+        console.error('❌ Utils non défini. Vérifiez que utils.js est chargé.');
         return;
     }
 
     if (typeof TRANSLATIONS === 'undefined') {
-        console.error('TRANSLATIONS non défini. Vérifiez que translations.js est chargé.');
+        console.error('❌ TRANSLATIONS non défini. Vérifiez que translations.js est chargé.');
         return;
     }
 
     if (typeof LanguageManager === 'undefined') {
-        console.error('LanguageManager non défini. Vérifiez que language-manager.js est chargé.');
+        console.error('❌ LanguageManager non défini. Vérifiez que language-manager.js est chargé.');
         return;
     }
 
     // Initialisation de l'app
     try {
         window.appManager = new AppManager();
-        console.log('✅ Application initialisée avec succès (Mode local USERS_DB + 2 appareils max)');
+        console.log('✅ Application initialisée avec succès (Mode Supabase Auth)');
     } catch (error) {
         console.error('❌ Erreur lors de l\'initialisation:', error);
     }
@@ -451,7 +535,7 @@ window.addEventListener('beforeunload', function() {
 
 // Gestion des erreurs globales
 window.addEventListener('error', function(event) {
-    console.error('Erreur globale:', event.error);
+    console.error('❌ Erreur globale:', event.error);
     
     if (typeof Utils !== 'undefined' && typeof t === 'function') {
         Utils.showToast(t('toast.error.unexpected'), 'error');
