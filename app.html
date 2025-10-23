@@ -155,74 +155,130 @@
                 </div>
             </div>
 
-            <!-- PAGE PROFIL -->
-            <div class="page" id="profilPage" style="display: none;">
-                <h1 data-i18n="profile.title">👤 Mon Profil</h1>
-                
+            <!-- 👤 PAGE PROFIL - VERSION CORRIGÉE -->
+            <div id="profilPage" class="page-content" style="display: none;">
+                <div class="page-header">
+                    <h2 data-i18n="profile.title">Mon Profil</h2>
+                </div>
+
                 <!-- Informations personnelles -->
                 <div class="profile-section">
                     <h3 data-i18n="profile.info">Informations personnelles</h3>
-                    <div class="profile-grid">
-                        <div class="profile-field">
-                            <label data-i18n="profile.firstname">Prénom</label>
-                            <input type="text" id="profileFirstName" placeholder="Jean" />
-                        </div>
-                        <div class="profile-field">
-                            <label data-i18n="profile.lastname">Nom</label>
-                            <input type="text" id="profileLastName" placeholder="Dupont" />
-                        </div>
-                        <div class="profile-field full-width">
-                            <label data-i18n="profile.email">Email</label>
-                            <input type="email" id="profileEmail" disabled style="background: var(--gray-100); cursor: not-allowed;" />
-                        </div>
+                    
+                    <div class="form-group">
+                        <label data-i18n="profile.firstname">Prénom</label>
+                        <input type="text" id="profileFirstName" class="input-field" placeholder="Jean">
                     </div>
-                    <button class="save-btn" id="saveProfileBtn">
+                    
+                    <div class="form-group">
+                        <label data-i18n="profile.lastname">Nom</label>
+                        <input type="text" id="profileLastName" class="input-field" placeholder="Dupont">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label data-i18n="profile.email">Email</label>
+                        <input type="email" id="profileEmail" class="input-field" placeholder="jean.dupont@example.com" readonly>
+                    </div>
+                    
+                    <button id="saveProfileBtn" class="btn-primary" onclick="window.appManager.profileManager.saveProfile()" style="margin-top: 20px;">
                         💾 <span data-i18n="profile.save">Sauvegarder</span>
                     </button>
                 </div>
-                
-                <!-- Plan et limites -->
+
+                <!-- Mon abonnement -->
                 <div class="profile-section">
                     <h3 data-i18n="profile.subscription">Mon abonnement</h3>
-                    <div class="plan-card">
-                        <div class="plan-header">
-                            <div class="plan-badge" id="planBadge">Free</div>
-                            <div class="plan-date" id="planDate">Membre depuis octobre 2024</div>
+                    
+                    <div id="planBadge" class="plan-badge free">FREE</div>
+                    <div id="planDate" style="margin: 15px 0; color: var(--gray-600); font-size: 14px;">Membre depuis...</div>
+                    
+                    <!-- Compteur rapports -->
+                    <div style="margin: 20px 0;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-weight: 600; color: var(--gray-800);" data-i18n="profile.reports.month">Rapports ce mois</span>
+                            <span style="font-weight: 700; font-size: 18px; color: var(--success);">
+                                <span id="reportsCountProfile">0</span>/<span id="reportsLimitProfile">5</span>
+                            </span>
                         </div>
-                        <div class="plan-limits">
-                            <div class="limit-item">
-                                <span class="limit-label" data-i18n="profile.reports.month">Rapports ce mois :</span>
-                                <span class="limit-value">
-                                    <span id="reportsCountProfile">0</span> / <span id="reportsLimitProfile">5</span>
-                                </span>
-                            </div>
-                            <div class="limit-progress">
-                                <div class="limit-progress-bar" id="reportsProgressBar" style="width: 0%"></div>
-                            </div>
+                        
+                        <!-- Barre de progression -->
+                        <div style="width: 100%; height: 12px; background: var(--gray-200); border-radius: 10px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);">
+                            <div id="reportsProgressBar" style="
+                                width: 0%; 
+                                height: 100%; 
+                                background: linear-gradient(90deg, #8B1538, #F59E0B); 
+                                transition: all 0.3s ease;
+                                border-radius: 10px;
+                            "></div>
                         </div>
-                        <button class="upgrade-btn" id="upgradeBtn">
-                            🚀 <span data-i18n="profile.upgrade">Passer au plan PRO</span>
-                        </button>
                     </div>
+                    
+                    <!-- ✅ CONTENEUR POUR LA DATE DU PROCHAIN RESET -->
+                    <div id="nextResetInfo"></div>
+                    
+                    <!-- ✅ BOUTON UPGRADE (pour utilisateurs FREE) -->
+                    <button id="upgradeBtn" class="btn-primary" onclick="window.appManager.profileManager.handleUpgrade()" style="
+                        width: 100%; 
+                        margin-top: 20px; 
+                        padding: 14px; 
+                        background: linear-gradient(135deg, var(--primary), #FF6F00); 
+                        color: white; 
+                        border: none; 
+                        border-radius: 12px; 
+                        font-weight: 700; 
+                        cursor: pointer;
+                        font-size: 15px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 8px;
+                        transition: all 0.3s ease;
+                        box-shadow: 0 4px 15px rgba(139, 21, 56, 0.3);
+                    ">
+                        ✨ <span data-i18n="profile.upgrade">Passer au plan PRO</span>
+                    </button>
+                    
+                    <!-- ✅ NOUVEAU : BOUTON ANNULER (pour utilisateurs PRO) -->
+                    <button id="cancelSubscriptionBtn" class="btn-danger" onclick="window.appManager.profileManager.cancelSubscription()" style="
+                        width: 100%; 
+                        margin-top: 20px; 
+                        padding: 14px; 
+                        background: linear-gradient(135deg, #DC2626, #991B1B); 
+                        color: white; 
+                        border: none; 
+                        border-radius: 12px; 
+                        font-weight: 700; 
+                        cursor: pointer;
+                        font-size: 15px;
+                        display: none;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 8px;
+                        transition: all 0.3s ease;
+                        box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3);
+                    ">
+                        🚫 <span data-i18n="profile.cancel">Annuler l'abonnement</span>
+                    </button>
                 </div>
-                
+
                 <!-- Appareils connectés -->
                 <div class="profile-section">
                     <h3 data-i18n="profile.devices">Appareils connectés</h3>
-                    <div class="devices-list" id="devicesList">
-                        <div class="empty-state" style="padding: 30px;">
-                            <div class="icon">📱</div>
-                            <p data-i18n="profile.devices.none">Aucun appareil connecté</p>
-                        </div>
-                    </div>
+                    <div id="devicesList"></div>
                 </div>
-                
-               <!-- Actions danger -->
-                             <div class="profile-section" style="border: none; background: transparent; padding: 20px 0;">
-                         <button class="delete-account-link" id="deleteAccountBtn">
-                     <span data-i18n="profile.delete">Supprimer mon compte</span>
-                 </button>
-                </div>
+
+               <!-- Actions discrètes -->
+<div class="profile-section discreet-actions">
+    <!-- Bouton annuler l'abonnement (pour PRO) -->
+    <button id="cancelSubscriptionBtn" onclick="window.appManager.profileManager.cancelSubscription()" style="display: none;">
+        Annuler l'abonnement
+    </button>
+    
+    <!-- Bouton supprimer le compte -->
+    <button id="deleteAccountBtn" onclick="window.appManager.profileManager.deleteAccount()">
+        Supprimer mon compte
+    </button>
+</div>
             </div>
 
         </div>
@@ -234,6 +290,7 @@
     
     <!-- 1. Supabase Client Library (DOIT ÊTRE EN PREMIER) -->
     <script src="js/supabase.min.js"></script>
+    <script src="js/stripe-config.js"></script>
     
     <!-- 2. Configuration Supabase -->
     <script src="js/supabase-config.js"></script>

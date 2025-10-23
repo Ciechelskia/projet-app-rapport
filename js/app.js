@@ -7,7 +7,7 @@ class AppManager {
         // Initialisation des managers
         this.audioManager = new AudioManager();
         this.dataManager = new DataManager();
-        this.profileManager = null; // Sera créé au besoin
+        this.profileManager = null;
         
         // Initialiser le gestionnaire de langues
         window.languageManager = new LanguageManager();
@@ -17,54 +17,66 @@ class AppManager {
         window.dataManager = this.dataManager;
         window.app = this;
         
-        this.initializeApp();
+        // Appeler initializeApp de manière asynchrone
+        this.initializeApp().catch(error => {
+            console.error('❌ Erreur initialisation:', error);
+        });
         this.bindEvents();
     }
 
     // === INITIALISATION ===
-
-    initializeApp() {
+    async initializeApp() {
+        console.log('🔄 Vérification session existante...');
+        
+        // Attendre que Supabase soit initialisé
+        const supabaseReady = await this.waitForSupabase();
+        
+        if (supabaseReady && window.supabaseClient) {
+            try {
+                const { data: { session }, error } = await window.supabaseClient.auth.getSession();
+                
+                if (!error && session) {
+                    console.log('✅ SESSION ACTIVE DÉTECTÉE:', session.user.email);
+                    await this.restoreUserSession(session);
+                    return;
+                } else {
+                    console.log('ℹ️ Aucune session active');
+                }
+            } catch (error) {
+                console.error('❌ Erreur vérification session:', error);
+            }
+        }
+        
+        // Pas de session = initialisation normale
         this.logout();
         this.showPage(PAGES.LOGIN);
         
-        // Ajouter les styles CSS pour les animations toast
         this.addToastStyles();
         
-        // IMPORTANT : Initialiser la langue AVANT tout le reste
         console.log('🔄 Initialisation de la langue...');
         this.languageManager.init();
         console.log('✅ Langue initialisée:', this.languageManager.getCurrentLanguage());
         
-        // Injecter les styles du sélecteur de langue
         this.languageManager.injectStyles();
-        
-        // Créer et insérer les sélecteurs de langue (login + header)
         this.initLanguageSelector();
-        
-        // Mettre à jour l'interface avec la langue détectée
         this.languageManager.updateUI();
         
-        // Écouter les changements de langue
         window.addEventListener('languageChanged', (e) => {
             this.onLanguageChanged(e.detail.language);
         });
         
-        // Initialiser Supabase si disponible
         if (typeof initSupabase === 'function') {
             initSupabase();
         }
     }
 
-    // Initialiser les sélecteurs de langue (login ET header)
     initLanguageSelector() {
-        // Sélecteur dans le header (après connexion)
         const headerContainer = document.getElementById('languageSelectorContainer');
         if (headerContainer) {
             const headerSelector = this.languageManager.createLanguageSelector();
             headerContainer.appendChild(headerSelector);
         }
         
-        // Sélecteur sur la page de login (avant connexion)
         const loginContainer = document.getElementById('loginLanguageSelector');
         if (loginContainer) {
             const loginSelector = this.languageManager.createLanguageSelector();
@@ -72,14 +84,11 @@ class AppManager {
         }
     }
 
-    // Gérer le changement de langue
     onLanguageChanged(newLang) {
-        console.log(`🌍 Changement de langue détecté: ${newLang}`);
+        console.log('🌍 Changement de langue détecté:', newLang);
         
-        // Mettre à jour toute l'interface
         this.languageManager.updateUI();
         
-        // Recharger les données avec les nouvelles traductions
         if (this.currentPage === PAGES.BROUILLON) {
             this.loadBrouillonsData();
         } else if (this.currentPage === PAGES.RAPPORTS) {
@@ -88,7 +97,6 @@ class AppManager {
             this.loadProfilData();
         }
         
-        // Mettre à jour le titre de la page
         document.title = t('app.title');
     }
 
@@ -107,8 +115,107 @@ class AppManager {
         document.head.appendChild(style);
     }
 
+    async waitForSupabase(maxAttempts = 50) {
+        let attempts = 0;
+        while (!window.supabaseClient && attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+        }
+        return window.supabaseClient !== undefined;
+    }
+
+    async restoreUserSession(session) {
+        try {
+            console.log('🔄 Restauration de la session utilisateur...');
+            
+            // ✅ NOUVEAU : Vérifier si on revient d'un paiement Stripe AVANT de charger le profil
+            const paymentSuccess = sessionStorage.getItem('stripe_payment_success');
+            
+            if (paymentSuccess === 'true') {
+                console.log('🎉 Retour après paiement Stripe détecté !');
+                console.log('🔄 Rechargement du profil depuis Supabase...');
+                
+                // Nettoyer les flags
+                sessionStorage.removeItem('stripe_payment_success');
+                sessionStorage.removeItem('stripe_session_id');
+                
+                // Attendre un peu pour s'assurer que Supabase est prêt
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            
+            const { data: profile, error: profileError } = await window.supabaseClient
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+            
+            if (profileError) {
+                console.error('❌ Erreur récupération profil:', profileError);
+                this.logout();
+                return;
+            }
+            
+            console.log('✅ Profil restauré:', profile);
+            
+            const deviceId = Utils.generateDeviceId();
+            let deviceIds = profile.device_ids || [];
+            
+            this.currentUser = {
+                id: session.user.id,
+                email: session.user.email,
+                nom: profile.first_name + ' ' + profile.last_name,
+                first_name: profile.first_name,
+                last_name: profile.last_name,
+                role: 'commercial',
+                subscription_plan: profile.subscription_plan,
+                reports_this_month: profile.reports_this_month,
+                deviceId: JSON.stringify(deviceIds),
+                loginTime: new Date().toISOString()
+            };
+            
+            this.addToastStyles();
+            this.languageManager.init();
+            this.languageManager.injectStyles();
+            this.initLanguageSelector();
+            this.languageManager.updateUI();
+            
+            window.addEventListener('languageChanged', (e) => {
+                this.onLanguageChanged(e.detail.language);
+            });
+            
+            this.updateUserInterface();
+            
+            await this.dataManager.syncFromSupabase();
+            
+            // ✅ NOUVEAU : Si retour Stripe, aller directement au profil avec notification
+            if (paymentSuccess === 'true') {
+                console.log('🎊 Affichage du profil après paiement réussi');
+                this.showPage(PAGES.PROFIL);
+                
+                // Afficher la notification de succès
+                setTimeout(() => {
+                    Utils.showToast('🎉 Bienvenue dans le plan PRO ! Votre compte a été mis à jour.', 'success', 5000);
+                }, 800);
+                
+                // Recharger le profil pour afficher les nouvelles données
+                setTimeout(async () => {
+                    if (this.profileManager) {
+                        await this.profileManager.loadProfile(this.currentUser.id);
+                    }
+                }, 1500);
+            } else {
+                this.showPage(PAGES.BROUILLON);
+            }
+            
+            console.log('✅ Session restaurée avec succès');
+            
+        } catch (error) {
+            console.error('❌ Erreur restauration session:', error);
+            this.logout();
+        }
+    }
+
     bindEvents() {
-        // Login
         const loginForm = document.getElementById('loginForm');
         if (loginForm) {
             loginForm.addEventListener('submit', (e) => {
@@ -117,10 +224,8 @@ class AppManager {
             });
         }
 
-        // Navigation
         this.bindNavigationEvents();
 
-        // Search
         const searchInput = document.getElementById('searchInput');
         if (searchInput) {
             searchInput.addEventListener('input', Utils.debounce((e) => {
@@ -160,16 +265,13 @@ class AppManager {
         }
     }
 
-    // === GESTION DES PAGES ===
-
     showPage(pageId) {
-        // Masquer toutes les pages
-        ['loginPage', 'brouillonPage', 'rapportsPage', 'profilPage'].forEach(id => {
+        const pages = ['loginPage', 'brouillonPage', 'rapportsPage', 'profilPage'];
+        pages.forEach(id => {
             const page = document.getElementById(id);
             if (page) page.style.display = 'none';
         });
 
-        // Afficher la page demandée
         if (pageId === 'loginPage' && !this.currentUser) {
             const loginPage = document.getElementById('loginPage');
             if (loginPage) loginPage.style.display = 'block';
@@ -185,7 +287,6 @@ class AppManager {
         this.currentPage = pageId;
         this.updateNavigation();
         
-        // Chargement des données selon la page
         if (pageId === PAGES.BROUILLON) {
             this.loadBrouillonsData();
         } else if (pageId === PAGES.RAPPORTS) {
@@ -212,8 +313,6 @@ class AppManager {
         }
     }
 
-    // === AUTHENTIFICATION SUPABASE ===
-
     async handleLogin() {
         const usernameEl = document.getElementById('username');
         const passwordEl = document.getElementById('password');
@@ -226,13 +325,11 @@ class AppManager {
         const emailOrUsername = usernameEl.value.trim();
         const password = passwordEl.value.trim();
 
-        // Validation
         if (!emailOrUsername || !password) {
             this.showError(t('login.error.empty'));
             return;
         }
 
-        // Reset UI
         if (errorDiv) errorDiv.style.display = 'none';
         if (loadingDiv) loadingDiv.style.display = 'block';
         if (loginBtn) loginBtn.disabled = true;
@@ -240,12 +337,10 @@ class AppManager {
         try {
             console.log('🔐 Connexion avec Supabase Auth...');
 
-            // Vérifier que Supabase est initialisé
             if (!window.supabaseClient) {
                 throw new Error('Supabase non initialisé');
             }
 
-            // 1. Connexion avec Supabase Auth
             const { data: authData, error: authError } = await window.supabaseClient.auth.signInWithPassword({
                 email: emailOrUsername,
                 password: password
@@ -267,7 +362,6 @@ class AppManager {
 
             console.log('✅ Authentification réussie:', authData);
 
-            // 2. Récupérer le profil depuis la table profiles
             console.log('🔍 Récupération du profil pour user ID:', authData.user.id);
 
             const { data: profile, error: profileError } = await window.supabaseClient
@@ -278,37 +372,66 @@ class AppManager {
 
             if (profileError) {
                 console.error('❌ Erreur récupération profil:', profileError);
-                console.error('❌ Détails erreur:', {
-                    message: profileError.message,
-                    details: profileError.details,
-                    hint: profileError.hint,
-                    code: profileError.code
-                });
                 
                 if (profileError.code === 'PGRST116') {
                     throw new Error('Votre profil n\'existe pas. Veuillez vous réinscrire.');
                 }
                 
-                throw new Error(`Impossible de récupérer votre profil: ${profileError.message}`);
+                throw new Error('Impossible de récupérer votre profil: ' + profileError.message);
             }
 
             console.log('✅ Profil chargé:', profile);
 
-            // 3. Vérifier Device ID (2 appareils max)
+            if (profile.subscription_plan === 'free' && profile.last_reset_date) {
+                const lastReset = new Date(profile.last_reset_date);
+                const now = new Date();
+                const daysSinceReset = Math.floor((now - lastReset) / (1000 * 60 * 60 * 24));
+                
+                console.log('📅 Dernier reset: ' + lastReset.toLocaleDateString() + ' (il y a ' + daysSinceReset + ' jours)');
+                
+                if (daysSinceReset >= 30) {
+                    console.log('🔄 Reset du compteur (30 jours écoulés)...');
+                    
+                    try {
+                        const { data: resetResult, error: resetError } = await window.supabaseClient
+                            .rpc('check_and_reset_user_reports', { user_id: authData.user.id });
+                        
+                        if (resetError) {
+                            console.error('❌ Erreur reset compteur:', resetError);
+                        } else {
+                            console.log('✅ Compteur réinitialisé avec succès !');
+                            
+                            const { data: updatedProfile, error: reloadError } = await window.supabaseClient
+                                .from('profiles')
+                                .select('*')
+                                .eq('id', authData.user.id)
+                                .single();
+                            
+                            if (!reloadError && updatedProfile) {
+                                profile.reports_this_month = updatedProfile.reports_this_month;
+                                profile.last_reset_date = updatedProfile.last_reset_date;
+                                
+                                Utils.showToast('🎉 Nouveau mois ! Votre compteur a été réinitialisé. Vous avez 5 nouveaux rapports disponibles.', 'success', 6000);
+                            }
+                        }
+                    } catch (error) {
+                        console.error('❌ Exception lors du reset:', error);
+                    }
+                } else {
+                    console.log('ℹ️ Pas de reset nécessaire (' + daysSinceReset + '/30 jours)');
+                }
+            }
+
             const deviceId = Utils.generateDeviceId();
             let deviceIds = profile.device_ids || [];
 
-            // Si l'appareil n'est pas enregistré
             if (!deviceIds.includes(deviceId)) {
-                // Si limite atteinte (2 appareils max)
                 if (deviceIds.length >= 2) {
                     throw new Error(t('login.error.device.limit'));
                 }
 
-                // Ajouter le nouvel appareil
                 deviceIds.push(deviceId);
 
-                // Mettre à jour dans Supabase
                 const { error: updateError } = await window.supabaseClient
                     .from('profiles')
                     .update({ device_ids: deviceIds })
@@ -317,29 +440,30 @@ class AppManager {
                 if (updateError) {
                     console.error('❌ Erreur mise à jour devices:', updateError);
                 } else {
-                    console.log(`✅ Device ${deviceIds.length}/2 enregistré`);
+                    console.log('✅ Device ' + deviceIds.length + '/2 enregistré');
                 }
             } else {
-                console.log(`✅ Device déjà enregistré (${deviceIds.indexOf(deviceId) + 1}/2)`);
+                console.log('✅ Device déjà enregistré (' + (deviceIds.indexOf(deviceId) + 1) + '/2)');
             }
 
-            // 4. Créer l'objet utilisateur pour l'app
             this.currentUser = {
                 id: authData.user.id,
                 email: authData.user.email,
-                nom: `${profile.first_name} ${profile.last_name}`,
+                nom: profile.first_name + ' ' + profile.last_name,
                 first_name: profile.first_name,
                 last_name: profile.last_name,
-                role: 'commercial', // Par défaut
+                role: 'commercial',
                 subscription_plan: profile.subscription_plan,
                 reports_this_month: profile.reports_this_month,
                 deviceId: JSON.stringify(deviceIds),
                 loginTime: new Date().toISOString()
             };
 
-            // 5. Afficher l'interface
             this.updateUserInterface();
             this.showPage(PAGES.BROUILLON);
+
+            await this.dataManager.syncFromSupabase();
+            
             Utils.showToast(t('login.welcome', { name: profile.first_name }), 'success');
 
         } catch (error) {
@@ -371,19 +495,17 @@ class AppManager {
                 userAvatarEl.textContent = initials;
             }
             
-            // Rôle traduit avec compteur d'appareils
             if (userRoleEl) {
-                const roleKey = `role.${this.currentUser.role}`;
+                const roleKey = 'role.' + this.currentUser.role;
                 let devices = [];
                 try {
                     devices = JSON.parse(this.currentUser.deviceId || '[]');
                 } catch (e) {
                     devices = this.currentUser.deviceId ? [this.currentUser.deviceId] : [];
                 }
-                userRoleEl.textContent = `${t(roleKey)} (${devices.length}/2 📱)`;
+                userRoleEl.textContent = t(roleKey) + ' (' + devices.length + '/2 📱)';
             }
             
-            // Forcer la mise à jour du sélecteur de langue dans le header
             if (this.languageManager) {
                 this.languageManager.updateAllLanguageSelectors();
             }
@@ -391,7 +513,6 @@ class AppManager {
     }
 
     async logout() {
-        // Déconnexion Supabase
         if (window.supabaseClient) {
             try {
                 await window.supabaseClient.auth.signOut();
@@ -403,12 +524,10 @@ class AppManager {
         
         this.currentUser = null;
         
-        // Reset audio manager
         if (this.audioManager) {
             this.audioManager.resetRecording();
         }
         
-        // Reset formulaire
         const loginForm = document.getElementById('loginForm');
         const errorMessage = document.getElementById('errorMessage');
         const loadingMessage = document.getElementById('loadingMessage');
@@ -419,8 +538,6 @@ class AppManager {
         
         this.showPage(PAGES.LOGIN);
     }
-
-    // === CHARGEMENT DES DONNÉES ===
 
     loadBrouillonsData() {
         const brouillons = this.dataManager.getBrouillons();
@@ -435,11 +552,9 @@ class AppManager {
     async loadProfilData() {
         if (!this.currentUser) return;
         
-        // Créer le ProfileManager si inexistant
         if (!this.profileManager) {
             this.profileManager = new ProfileManager();
             
-            // Binder les événements
             const saveBtn = document.getElementById('saveProfileBtn');
             const upgradeBtn = document.getElementById('upgradeBtn');
             const deleteBtn = document.getElementById('deleteAccountBtn');
@@ -463,11 +578,8 @@ class AppManager {
             }
         }
         
-        // Charger le profil
         await this.profileManager.loadProfile(this.currentUser.id);
     }
-
-    // === MÉTHODES PUBLIQUES ===
 
     getCurrentUser() {
         return this.currentUser;
@@ -481,7 +593,6 @@ class AppManager {
         return this.audioManager;
     }
 
-    // Redirection pour compatibilité
     editBrouillon(id) { return this.dataManager.editBrouillon(id); }
     validateBrouillon(id) { return this.dataManager.validateBrouillon(id); }
     deleteBrouillon(id) { return this.dataManager.deleteBrouillon(id); }
@@ -492,11 +603,54 @@ class AppManager {
     downloadPDF(id) { return this.dataManager.downloadPDF(id); }
 }
 
-// === INITIALISATION ===
-
-// Initialisation de l'application
-document.addEventListener('DOMContentLoaded', function() {
-    // Vérification des dépendances
+document.addEventListener('DOMContentLoaded', async function() {
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    const type = urlParams.get('type');
+    
+    if (token && type === 'signup') {
+        console.log('🔐 Confirmation email détectée...');
+        
+        let attempts = 0;
+        const maxAttempts = 50;
+        
+        const waitForSupabase = setInterval(async () => {
+            attempts++;
+            
+            if (window.supabaseClient || attempts >= maxAttempts) {
+                clearInterval(waitForSupabase);
+                
+                if (!window.supabaseClient) {
+                    console.error('❌ Supabase non disponible pour la confirmation');
+                    Utils.showToast('Erreur de confirmation. Rechargez la page.', 'error');
+                    return;
+                }
+                
+                try {
+                    const { error } = await window.supabaseClient.auth.verifyOtp({
+                        token_hash: token,
+                        type: 'signup'
+                    });
+                    
+                    if (error) {
+                        console.error('❌ Erreur confirmation:', error);
+                        Utils.showToast('Erreur de confirmation. Le lien a peut-être expiré.', 'error');
+                    } else {
+                        console.log('✅ Email confirmé avec succès');
+                        Utils.showToast('✅ Email confirmé ! Vous pouvez maintenant vous connecter.', 'success', 5000);
+                    }
+                    
+                    window.history.replaceState({}, document.title, '/app.html');
+                    
+                } catch (error) {
+                    console.error('❌ Exception confirmation:', error);
+                    Utils.showToast('Erreur de confirmation. Contactez le support.', 'error');
+                }
+            }
+        }, 100);
+    }
+    
     if (typeof CONFIG === 'undefined') {
         console.error('❌ CONFIG non défini. Vérifiez que config.js est chargé.');
         return;
@@ -517,23 +671,20 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
-    // Initialisation de l'app
     try {
         window.appManager = new AppManager();
-        console.log('✅ Application initialisée avec succès (Mode Supabase Auth)');
+        console.log('✅ Application initialisée avec succès (Mode Supabase Auth + Email Confirmation)');
     } catch (error) {
         console.error('❌ Erreur lors de l\'initialisation:', error);
     }
 });
 
-// Nettoyage lors de la fermeture
 window.addEventListener('beforeunload', function() {
     if (window.appManager && window.appManager.audioManager) {
         window.appManager.audioManager.stopAudioStream();
     }
 });
 
-// Gestion des erreurs globales
 window.addEventListener('error', function(event) {
     console.error('❌ Erreur globale:', event.error);
     
@@ -542,7 +693,6 @@ window.addEventListener('error', function(event) {
     }
 });
 
-// Exposition globale pour les événements onclick (compatibilité)
 window.editBrouillon = function(id) { 
     if (window.dataManager) window.dataManager.editBrouillon(id); 
 };

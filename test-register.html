@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Register</title>
+</head>
+<body>
+    <h1>Test Supabase</h1>
+    <div id="result"></div>
+
+    <!-- Scripts dans le BON ordre -->
+    <script src="js/supabase.min.js"></script>
+    <script src="js/supabase-config.js"></script>
+    
+    <script>
+        const resultDiv = document.getElementById('result');
+        
+        // Attendre 1 seconde pour être sûr
+        setTimeout(() => {
+            console.log('Type de window.supabase:', typeof window.supabase);
+            console.log('Type de window.supabaseClient:', typeof window.supabaseClient);
+            
+            if (typeof window.supabase !== 'undefined') {
+                resultDiv.innerHTML = '<p style="color: green;">✅ Supabase chargé avec succès</p>';
+            } else {
+                resultDiv.innerHTML = '<p style="color: red;">❌ Supabase NON chargé</p>';
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

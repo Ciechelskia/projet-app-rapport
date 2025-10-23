@@ -1,10 +1,226 @@
-// Gestionnaire de données pour localStorage et gestion des rapports
+// ============================================
+// DATA MANAGER - VERSION SUPABASE COMPLÈTE
+// ============================================
+
 class DataManager {
     constructor() {
         this.storageKey = 'rapportsApp';
         this.maxBrouillons = 10;
         this.maxRapports = 20;
-        this.currentFolderId = null; // Pour la navigation dans les dossiers
+        this.currentFolderId = null;
+        this.syncInProgress = false;
+    }
+
+    // === VÉRIFIER SI ON PEUT UTILISER SUPABASE ===
+    
+    canUseSupabase() {
+        const currentUser = window.appManager?.getCurrentUser();
+        return !!(currentUser && currentUser.id && window.supabaseClient);
+    }
+
+    getUserId() {
+        const currentUser = window.appManager?.getCurrentUser();
+        return currentUser?.id || null;
+    }
+
+    // === SYNCHRONISATION INITIALE AU LOGIN ===
+    
+    async syncFromSupabase() {
+        if (!this.canUseSupabase() || this.syncInProgress) return;
+        
+        this.syncInProgress = true;
+        console.log('🔄 Synchronisation depuis Supabase...');
+        
+        try {
+            const userId = this.getUserId();
+            
+            const [draftsResult, reportsResult, foldersResult] = await Promise.all([
+                window.supabaseClient.from('drafts').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+                window.supabaseClient.from('reports').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+                window.supabaseClient.from('folders').select('*').eq('user_id', userId).order('created_at', { ascending: false })
+            ]);
+            
+            if (draftsResult.error) throw draftsResult.error;
+            if (reportsResult.error) throw reportsResult.error;
+            if (foldersResult.error) throw foldersResult.error;
+            
+            const data = {
+                brouillons: (draftsResult.data || []).map(d => this.convertDraftFromSupabase(d)),
+                rapports: (reportsResult.data || []).map(r => this.convertReportFromSupabase(r)),
+                folders: (foldersResult.data || []).map(f => this.convertFolderFromSupabase(f)),
+                lastSaved: new Date().toISOString()
+            };
+            
+            this.saveAppData(data);
+            
+            console.log('✅ Synchronisation terminée:', {
+                brouillons: data.brouillons.length,
+                rapports: data.rapports.length,
+                folders: data.folders.length
+            });
+            
+            return data;
+            
+        } catch (error) {
+            console.error('❌ Erreur synchronisation:', error);
+            Utils.showToast('Erreur de synchronisation. Mode hors ligne activé.', 'warning');
+            return this.loadAppData();
+        } finally {
+            this.syncInProgress = false;
+        }
+    }
+
+    // === CONVERSION SUPABASE → LOCAL ===
+    
+    convertDraftFromSupabase(draft) {
+        return {
+            id: draft.id,
+            title: draft.title || t('new.report'),
+            generatedReport: draft.generated_report,
+            createdAt: draft.created_at,
+            sourceType: draft.source_type || 'recording',
+            sourceInfo: draft.source_info,
+            audioUrl: draft.audio_url,
+            status: draft.status || 'generating',
+            isModified: draft.is_modified || false
+        };
+    }
+    
+    convertReportFromSupabase(report) {
+        return {
+            id: report.id ? report.id.toString() : Utils.generateId('rapport_'),
+            title: report.title,
+            content: report.content,
+            validatedAt: report.validated_at || report.created_at,
+            createdAt: report.created_at,
+            folderId: report.folder_id,
+            status: report.status,
+            sourceType: report.source_type,
+            sourceInfo: report.source_info,
+            isModified: report.is_modified || false,
+            hasPdf: report.has_pdf || false,
+            pdfGenerated: report.pdf_generated || false,
+            pdfUrl: report.pdf_url,
+            isTranslation: report.is_translation || false,
+            originalReportId: report.original_report_id,
+            translatedTo: report.translated_to,
+            detectedLanguage: report.detected_language,
+            translatedAt: report.translated_at,
+            sharedWith: report.shared_with || []
+        };
+    }
+    
+    convertFolderFromSupabase(folder) {
+        return {
+            id: folder.id.toString(),
+            name: folder.name,
+            color: folder.color || '#8B1538',
+            createdAt: folder.created_at
+        };
+    }
+
+    // === CONVERSION LOCAL → SUPABASE ===
+    
+    convertDraftToSupabase(draft) {
+        const userId = this.getUserId();
+        return {
+            id: draft.id,
+            user_id: userId,
+            title: draft.title,
+            generated_report: draft.generatedReport,
+            created_at: draft.createdAt || new Date().toISOString(),
+            source_type: draft.sourceType || 'recording',
+            source_info: draft.sourceInfo,
+            audio_url: draft.audioUrl,
+            status: draft.status || 'generating',
+            is_modified: draft.isModified || false
+        };
+    }
+    
+    convertReportToSupabase(report) {
+        const userId = this.getUserId();
+        return {
+            user_id: userId,
+            title: report.title,
+            content: report.content,
+            validated_at: report.validatedAt || new Date().toISOString(),
+            created_at: report.createdAt || new Date().toISOString(),
+            folder_id: report.folderId || null,
+            status: 'validated',
+            source_type: report.sourceType || 'recording',
+            source_info: report.sourceInfo,
+            is_modified: report.isModified || false,
+            has_pdf: report.hasPdf || false,
+            pdf_generated: report.pdfGenerated || false,
+            pdf_url: report.pdfUrl || null,
+            is_translation: report.isTranslation || false,
+            original_report_id: report.originalReportId || null,
+            translated_to: report.translatedTo || null,
+            detected_language: report.detectedLanguage || null,
+            translated_at: report.translatedAt || null,
+            shared_with: report.sharedWith || []
+        };
+    }
+    
+    convertFolderToSupabase(folder) {
+        const userId = this.getUserId();
+        return {
+            user_id: userId,
+            name: folder.name,
+            color: folder.color || '#8B1538',
+            created_at: folder.createdAt || new Date().toISOString()
+        };
+    }
+
+    // === UPLOAD PDF VERS SUPABASE STORAGE ===
+    
+    async uploadPdfToStorage(pdfData, filename) {
+        if (!this.canUseSupabase()) {
+            console.warn('⚠️ Supabase non disponible, PDF stocké en localStorage');
+            return null;
+        }
+        
+        try {
+            console.log('📤 Upload PDF vers Supabase Storage...');
+            
+            const base64Data = pdfData.includes('base64,') 
+                ? pdfData.split('base64,')[1] 
+                : pdfData;
+            
+            const byteCharacters = atob(base64Data);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: 'application/pdf' });
+            
+            const userId = this.getUserId();
+            const timestamp = Date.now();
+            const safeName = filename.replace(/[^a-z0-9_-]/gi, '_');
+            const filePath = `${userId}/${timestamp}_${safeName}.pdf`;
+            
+            const { data, error } = await window.supabaseClient.storage
+                .from('vocalia-files')
+                .upload(filePath, blob, {
+                    contentType: 'application/pdf',
+                    cacheControl: '3600',
+                    upsert: false
+                });
+            
+            if (error) throw error;
+            
+            const { data: urlData } = await window.supabaseClient.storage
+                .from('vocalia-files')
+                .createSignedUrl(filePath, 31536000);
+            
+            console.log('✅ PDF uploadé:', urlData.signedUrl);
+            return urlData.signedUrl;
+            
+        } catch (error) {
+            console.error('❌ Erreur upload PDF:', error);
+            return null;
+        }
     }
 
     // === GESTION DU STOCKAGE ===
@@ -58,34 +274,351 @@ class DataManager {
         } catch (error) {
             console.error('Erreur lors du nettoyage:', error);
         }
-    }
+    }// === GESTION DES BROUILLONS ===
 
-    // === MÉTHODE UTILITAIRE POUR TRADUIRE LE NOMBRE DE RAPPORTS ===
-    
-   // Méthode utilitaire pour traduire le nombre de rapports
-getReportsCountText(count) {
-    // Utiliser window.t() au lieu de t() pour garantir l'accès à la fonction globale
-    if (count === 0) {
-        return window.t('folder.reports.count', { count: 0 });
-    } else if (count === 1) {
-        return window.t('folder.reports.count', { count: 1 });
-    } else {
-        return window.t('folder.reports.count.plural', { count: count });
-    }
-}
-
-    // === NAVIGATION DANS LES DOSSIERS ===
-
-    openFolder(folderId) {
-        this.currentFolderId = folderId;
+    getBrouillons() {
         const data = this.loadAppData();
-        this.updateRapportsUI(data.rapports);
+        return data.brouillons || [];
     }
 
-    closeFolder() {
-        this.currentFolderId = null;
+    async addBrouillon(brouillon) {
         const data = this.loadAppData();
-        this.updateRapportsUI(data.rapports);
+        data.brouillons = data.brouillons || [];
+        data.brouillons.unshift(brouillon);
+        
+        this.saveAppData(data);
+        this.updateBrouillonsUI(data.brouillons);
+        
+        if (this.canUseSupabase()) {
+            try {
+                const supabaseDraft = this.convertDraftToSupabase(brouillon);
+                const { error } = await window.supabaseClient
+                    .from('drafts')
+                    .insert([supabaseDraft]);
+                
+                if (error) throw error;
+                console.log('✅ Brouillon sauvegardé dans Supabase');
+            } catch (error) {
+                console.error('❌ Erreur sauvegarde brouillon Supabase:', error);
+            }
+        }
+    }
+
+    async updateBrouillonWithReport(brouillonId, reportContent) {
+        const data = this.loadAppData();
+        const brouillon = data.brouillons.find(b => b.id === brouillonId);
+        
+        if (brouillon) {
+            brouillon.generatedReport = reportContent;
+            brouillon.status = 'ready';
+            brouillon.title = this.extractTitleFromContent(reportContent);
+            
+            this.saveAppData(data);
+            this.updateBrouillonsUI(data.brouillons);
+            
+            if (this.canUseSupabase()) {
+                try {
+                    const { error } = await window.supabaseClient
+                        .from('drafts')
+                        .update({
+                            generated_report: reportContent,
+                            status: 'ready',
+                            title: brouillon.title
+                        })
+                        .eq('id', brouillonId);
+                    
+                    if (error) throw error;
+                    console.log('✅ Brouillon mis à jour dans Supabase');
+                } catch (error) {
+                    console.error('❌ Erreur mise à jour brouillon:', error);
+                }
+            }
+        }
+    }
+
+    async updateBrouillonStatus(brouillonId, status) {
+        const data = this.loadAppData();
+        const brouillon = data.brouillons.find(b => b.id === brouillonId);
+        
+        if (brouillon) {
+            brouillon.status = status;
+            if (status === 'error') {
+                brouillon.title = t('drafts.status.error');
+            }
+            
+            this.saveAppData(data);
+            this.updateBrouillonsUI(data.brouillons);
+            
+            if (this.canUseSupabase()) {
+                try {
+                    const { error } = await window.supabaseClient
+                        .from('drafts')
+                        .update({ status, title: brouillon.title })
+                        .eq('id', brouillonId);
+                    
+                    if (error) throw error;
+                } catch (error) {
+                    console.error('❌ Erreur mise à jour status:', error);
+                }
+            }
+        }
+    }
+
+    async deleteBrouillon(brouillonId) {
+        const data = this.loadAppData();
+        data.brouillons = data.brouillons.filter(b => b.id !== brouillonId);
+        
+        this.saveAppData(data);
+        this.updateBrouillonsUI(data.brouillons);
+        Utils.showToast(t('toast.draft.deleted'), 'success');
+        
+        if (this.canUseSupabase()) {
+            try {
+                const { error } = await window.supabaseClient
+                    .from('drafts')
+                    .delete()
+                    .eq('id', brouillonId);
+                
+                if (error) throw error;
+                console.log('✅ Brouillon supprimé de Supabase');
+            } catch (error) {
+                console.error('❌ Erreur suppression brouillon:', error);
+            }
+        }
+    }
+
+    editBrouillon(brouillonId) {
+        const data = this.loadAppData();
+        const brouillon = data.brouillons.find(b => b.id === brouillonId);
+        
+        if (brouillon) {
+            const modal = Utils.createModal(
+                t('modal.edit.title'),
+                `
+                    <label style="display: block; margin-bottom: 10px; font-weight: bold;">
+                        ${t('modal.edit.title.label')}
+                    </label>
+                    <input type="text" id="editTitle" class="modal-input" value="${Utils.escapeHtml(brouillon.title || t('new.report'))}">
+                    
+                    <label style="display: block; margin-bottom: 10px; font-weight: bold;">
+                        ${t('modal.edit.content.label')}
+                    </label>
+                    <textarea id="editContent" class="modal-textarea">${Utils.escapeHtml(brouillon.generatedReport || '')}</textarea>
+                `,
+                [
+                    { text: t('modal.edit.cancel'), class: 'btn-secondary', onclick: 'this.closest("[data-modal]").remove()' },
+                    { text: t('modal.edit.save'), class: 'btn-primary', onclick: `window.dataManager.saveEditedBrouillon('${brouillonId}', this)` }
+                ]
+            );
+        }
+    }
+
+    async saveEditedBrouillon(brouillonId, buttonElement) {
+        const modal = buttonElement.closest('[data-modal]');
+        const newTitle = modal.querySelector('#editTitle').value.trim();
+        const newContent = modal.querySelector('#editContent').value.trim();
+        
+        if (!newTitle || !newContent) {
+            Utils.showToast(t('toast.draft.error.empty'), 'error');
+            return;
+        }
+        
+        const data = this.loadAppData();
+        const brouillon = data.brouillons.find(b => b.id === brouillonId);
+        
+        if (brouillon) {
+            brouillon.title = newTitle;
+            brouillon.generatedReport = newContent;
+            brouillon.isModified = true;
+            
+            this.saveAppData(data);
+            this.updateBrouillonsUI(data.brouillons);
+            
+            modal.remove();
+            Utils.showToast(t('toast.draft.saved'), 'success');
+            
+            if (this.canUseSupabase()) {
+                try {
+                    const { error } = await window.supabaseClient
+                        .from('drafts')
+                        .update({
+                            title: newTitle,
+                            generated_report: newContent,
+                            is_modified: true
+                        })
+                        .eq('id', brouillonId);
+                    
+                    if (error) throw error;
+                    console.log('✅ Brouillon édité dans Supabase');
+                } catch (error) {
+                    console.error('❌ Erreur édition brouillon:', error);
+                }
+            }
+        }
+    }
+
+    async validateBrouillon(brouillonId) {
+        const data = this.loadAppData();
+        const folders = data.folders || [];
+
+        if (folders.length > 0) {
+            const foldersOptions = [
+                `<option value="">${t('folder.none')}</option>`,
+                ...folders.map(folder => 
+                    `<option value="${folder.id}">📁 ${Utils.escapeHtml(folder.name)}</option>`
+                )
+            ].join('');
+
+            const modal = Utils.createModal(
+                t('modal.validate.title'),
+                `
+                    <p style="margin-bottom: 20px;">${t('modal.validate.message')}</p>
+                    <label style="display: block; margin-bottom: 10px; font-weight: bold;">
+                        ${t('modal.validate.folder.label')}
+                    </label>
+                    <select id="validateFolderSelect" class="modal-input" style="cursor: pointer;">
+                        ${foldersOptions}
+                    </select>
+                `,
+                [
+                    { text: t('modal.edit.cancel'), class: 'btn-secondary', onclick: 'this.closest("[data-modal]").remove()' },
+                    { text: t('drafts.action.validate'), class: 'btn-primary', onclick: `window.dataManager.confirmValidateBrouillon('${brouillonId}', this)` }
+                ]
+            );
+        } else {
+            this.confirmValidateBrouillon(brouillonId);
+        }
+    }
+
+    async confirmValidateBrouillon(brouillonId, buttonElement = null) {
+        let selectedFolderId = null;
+
+        if (buttonElement) {
+            const modal = buttonElement.closest('[data-modal]');
+            const select = modal.querySelector('#validateFolderSelect');
+            selectedFolderId = select.value || null;
+            modal.remove();
+        }
+
+        const data = this.loadAppData();
+        const brouillonIndex = data.brouillons.findIndex(b => b.id === brouillonId);
+        
+        if (brouillonIndex !== -1) {
+            const brouillon = data.brouillons[brouillonIndex];
+            
+            const rapport = {
+                id: Utils.generateId('rapport_'),
+                title: brouillon.title || `${t('new.report')} - ${new Date().toLocaleDateString()}`,
+                content: brouillon.generatedReport,
+                validatedAt: new Date().toISOString(),
+                createdAt: brouillon.createdAt,
+                folderId: selectedFolderId,
+                sharedWith: [],
+                status: 'validated',
+                isModified: brouillon.isModified,
+                sourceType: brouillon.sourceType,
+                sourceInfo: brouillon.sourceInfo,
+                hasPdf: false,
+                pdfGenerated: false,
+                pdfUrl: null
+            };
+
+            try {
+                Utils.showToast(t('toast.report.pdf.generating'), 'info');
+                const pdf = await Utils.generatePDF(rapport.title, rapport.content);
+                
+                if (this.canUseSupabase()) {
+                    const pdfUrl = await this.uploadPdfToStorage(
+                        pdf.output('datauristring'), 
+                        rapport.title
+                    );
+                    
+                    if (pdfUrl) {
+                        rapport.pdfUrl = pdfUrl;
+                        rapport.hasPdf = true;
+                        rapport.pdfGenerated = true;
+                        console.log('✅ PDF uploadé vers Supabase Storage');
+                    } else {
+                        rapport.pdfData = pdf.output('datauristring');
+                        rapport.hasPdf = true;
+                        rapport.pdfGenerated = true;
+                    }
+                } else {
+                    rapport.pdfData = pdf.output('datauristring');
+                    rapport.hasPdf = true;
+                    rapport.pdfGenerated = true;
+                }
+                
+                Utils.showToast(t('toast.report.pdf.generated'), 'success');
+            } catch (error) {
+                console.error('Erreur génération PDF:', error);
+                Utils.showToast(t('toast.report.pdf.error'), 'error');
+            }
+
+            data.rapports = data.rapports || [];
+            data.rapports.unshift(rapport);
+            data.brouillons.splice(brouillonIndex, 1);
+            
+            this.saveAppData(data);
+            this.updateBrouillonsUI(data.brouillons);
+            this.updateRapportsUI(data.rapports);
+            
+            Utils.showToast(t('toast.draft.validated'), 'success');
+            
+            if (this.canUseSupabase()) {
+                try {
+                    const userId = this.getUserId();
+                    const currentUser = window.appManager?.getCurrentUser();
+                    
+                    const supabaseReport = this.convertReportToSupabase(rapport);
+                    const { data: insertedReport, error: reportError } = await window.supabaseClient
+                        .from('reports')
+                        .insert([supabaseReport])
+                        .select()
+                        .single();
+                    
+                    if (reportError) throw reportError;
+                    console.log('✅ Rapport sauvegardé dans Supabase:', insertedReport.id);
+                    
+                    await window.supabaseClient
+                        .from('drafts')
+                        .delete()
+                        .eq('id', brouillonId);
+                    
+                    if (currentUser && currentUser.subscription_plan === 'free') {
+                        const { data: profileData, error: fetchError } = await window.supabaseClient
+                            .from('profiles')
+                            .select('reports_this_month')
+                            .eq('id', userId)
+                            .single();
+                        
+                        if (!fetchError) {
+                            const newCount = (profileData.reports_this_month || 0) + 1;
+                            
+                            await window.supabaseClient
+                                .from('profiles')
+                                .update({ reports_this_month: newCount })
+                                .eq('id', userId);
+                            
+                            console.log(`✅ Compteur mis à jour: ${newCount}/5`);
+                            
+                            if (window.appManager?.profileManager) {
+                                await window.appManager.profileManager.loadProfile(userId);
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('❌ Erreur sauvegarde rapport Supabase:', error);
+                }
+            }
+        }
+    }
+
+    // === GESTION DES RAPPORTS ===
+
+    getRapports() {
+        const data = this.loadAppData();
+        return data.rapports || [];
     }
 
     // === GESTION DES DOSSIERS ===
@@ -93,9 +626,7 @@ getReportsCountText(count) {
     getFolders() {
         const data = this.loadAppData();
         return data.folders || [];
-    }
-
-    createFolder(folderName) {
+    }async createFolder(folderName) {
         if (!folderName || !folderName.trim()) {
             Utils.showToast(t('toast.folder.error.empty'), 'error');
             return null;
@@ -120,10 +651,32 @@ getReportsCountText(count) {
         this.saveAppData(data);
         
         Utils.showToast(t('toast.folder.created', { name: folderName }), 'success');
+        
+        if (this.canUseSupabase()) {
+            try {
+                const supabaseFolder = this.convertFolderToSupabase(folder);
+                const { data: insertedFolder, error } = await window.supabaseClient
+                    .from('folders')
+                    .insert([supabaseFolder])
+                    .select()
+                    .single();
+                
+                if (error) throw error;
+                
+                folder.id = insertedFolder.id.toString();
+                data.folders[data.folders.length - 1] = folder;
+                this.saveAppData(data);
+                
+                console.log('✅ Dossier sauvegardé dans Supabase:', insertedFolder.id);
+            } catch (error) {
+                console.error('❌ Erreur création dossier Supabase:', error);
+            }
+        }
+        
         return folder;
     }
 
-    deleteFolder(folderId) {
+    async deleteFolder(folderId) {
         if (!confirm(t('folder.delete.confirm'))) {
             return;
         }
@@ -141,7 +694,6 @@ getReportsCountText(count) {
         data.folders = data.folders.filter(f => f.id !== folderId);
         this.saveAppData(data);
         
-        // Retourner à la vue principale si on était dans ce dossier
         if (this.currentFolderId === folderId) {
             this.closeFolder();
         } else {
@@ -149,6 +701,52 @@ getReportsCountText(count) {
         }
         
         Utils.showToast(t('toast.folder.deleted'), 'success');
+        
+        if (this.canUseSupabase()) {
+            try {
+                await window.supabaseClient
+                    .from('reports')
+                    .update({ folder_id: null })
+                    .eq('folder_id', folderId);
+                
+                const { error } = await window.supabaseClient
+                    .from('folders')
+                    .delete()
+                    .eq('id', parseInt(folderId));
+                
+                if (error) throw error;
+                console.log('✅ Dossier supprimé de Supabase');
+            } catch (error) {
+                console.error('❌ Erreur suppression dossier:', error);
+            }
+        }
+    }
+
+    getRandomFolderColor() {
+        const colors = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899'];
+        return colors[Math.floor(Math.random() * colors.length)];
+    }
+
+    getReportsCountText(count) {
+        if (count === 0) {
+            return window.t('folder.reports.count', { count: 0 });
+        } else if (count === 1) {
+            return window.t('folder.reports.count', { count: 1 });
+        } else {
+            return window.t('folder.reports.count.plural', { count: count });
+        }
+    }
+
+    openFolder(folderId) {
+        this.currentFolderId = folderId;
+        const data = this.loadAppData();
+        this.updateRapportsUI(data.rapports);
+    }
+
+    closeFolder() {
+        this.currentFolderId = null;
+        const data = this.loadAppData();
+        this.updateRapportsUI(data.rapports);
     }
 
     renameFolder(folderId) {
@@ -172,7 +770,7 @@ getReportsCountText(count) {
         );
     }
 
-    saveFolderRename(folderId, buttonElement) {
+    async saveFolderRename(folderId, buttonElement) {
         const modal = buttonElement.closest('[data-modal]');
         const newName = modal.querySelector('#folderNameInput').value.trim();
         
@@ -190,10 +788,24 @@ getReportsCountText(count) {
             this.updateRapportsUI(data.rapports);
             modal.remove();
             Utils.showToast(t('toast.folder.renamed'), 'success');
+            
+            if (this.canUseSupabase()) {
+                try {
+                    const { error } = await window.supabaseClient
+                        .from('folders')
+                        .update({ name: newName })
+                        .eq('id', parseInt(folderId));
+                    
+                    if (error) throw error;
+                    console.log('✅ Dossier renommé dans Supabase');
+                } catch (error) {
+                    console.error('❌ Erreur renommage dossier:', error);
+                }
+            }
         }
     }
 
-    moveRapportToFolder(rapportId, newFolderId) {
+    async moveRapportToFolder(rapportId, newFolderId) {
         const data = this.loadAppData();
         const rapport = data.rapports.find(r => r.id === rapportId);
         
@@ -204,12 +816,21 @@ getReportsCountText(count) {
             
             const folderName = newFolderId ? data.folders.find(f => f.id === newFolderId)?.name : t('folder.none');
             Utils.showToast(t('toast.report.moved', { folder: folderName }), 'success');
+            
+            if (this.canUseSupabase()) {
+                try {
+                    const { error } = await window.supabaseClient
+                        .from('reports')
+                        .update({ folder_id: newFolderId })
+                        .eq('id', parseInt(rapportId));
+                    
+                    if (error) throw error;
+                    console.log('✅ Rapport déplacé dans Supabase');
+                } catch (error) {
+                    console.error('❌ Erreur déplacement rapport:', error);
+                }
+            }
         }
-    }
-
-    getRandomFolderColor() {
-        const colors = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899'];
-        return colors[Math.floor(Math.random() * colors.length)];
     }
 
     showCreateFolderModal() {
@@ -286,239 +907,275 @@ getReportsCountText(count) {
         modal.remove();
     }
 
-    // === GESTION DES BROUILLONS ===
-
-    getBrouillons() {
+    async downloadPDF(rapportId) {
         const data = this.loadAppData();
-        return data.brouillons || [];
-    }
-
-    addBrouillon(brouillon) {
-        const data = this.loadAppData();
-        data.brouillons = data.brouillons || [];
-        data.brouillons.unshift(brouillon);
+        const rapport = data.rapports.find(r => r.id === rapportId);
         
-        this.saveAppData(data);
-        this.updateBrouillonsUI(data.brouillons);
-    }
-
-    updateBrouillonWithReport(brouillonId, reportContent) {
-        const data = this.loadAppData();
-        const brouillon = data.brouillons.find(b => b.id === brouillonId);
+        if (!rapport) return;
         
-        if (brouillon) {
-            brouillon.generatedReport = reportContent;
-            brouillon.status = 'ready';
-            brouillon.title = this.extractTitleFromContent(reportContent);
-            
-            this.saveAppData(data);
-            this.updateBrouillonsUI(data.brouillons);
-        }
-    }
-
-    updateBrouillonStatus(brouillonId, status) {
-        const data = this.loadAppData();
-        const brouillon = data.brouillons.find(b => b.id === brouillonId);
-        
-        if (brouillon) {
-            brouillon.status = status;
-            if (status === 'error') {
-                brouillon.title = t('drafts.status.error');
+        if (rapport.pdfUrl) {
+            try {
+                Utils.showToast(t('toast.report.pdf.downloading'), 'info');
+                
+                const link = document.createElement('a');
+                link.href = rapport.pdfUrl;
+                link.download = `${rapport.title.replace(/[^a-z0-9]/gi, '_')}.pdf`;
+                link.target = '_blank';
+                link.click();
+                
+                Utils.showToast(t('toast.report.pdf.downloaded'), 'success');
+                return;
+            } catch (error) {
+                console.error('❌ Erreur téléchargement PDF:', error);
             }
+        }
+        
+        if (rapport.pdfData) {
+            const byteCharacters = atob(rapport.pdfData.split(',')[1]);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: 'application/pdf' });
             
-            this.saveAppData(data);
-            this.updateBrouillonsUI(data.brouillons);
+            const filename = `${rapport.title.replace(/[^a-z0-9]/gi, '_')}.pdf`;
+            Utils.downloadFile(blob, filename);
+            Utils.showToast(t('toast.report.pdf.downloaded'), 'success');
+        } else {
+            Utils.showToast(t('toast.report.pdf.unavailable'), 'error');
         }
     }
 
-    deleteBrouillon(brouillonId) {
+    async shareRapport(rapportId) {
         const data = this.loadAppData();
-        data.brouillons = data.brouillons.filter(b => b.id !== brouillonId);
+        const rapport = data.rapports.find(r => r.id === rapportId);
         
-        this.saveAppData(data);
-        this.updateBrouillonsUI(data.brouillons);
-        Utils.showToast(t('toast.draft.deleted'), 'success');
+        if (!rapport) return;
+        
+        if (rapport.pdfUrl) {
+            try {
+                if (navigator.share) {
+                    await navigator.share({
+                        title: rapport.title,
+                        text: `${t('new.report')}: ${rapport.title}`,
+                        url: rapport.pdfUrl
+                    });
+                    Utils.showToast(t('toast.report.shared'), 'success');
+                    return;
+                } else {
+                    await Utils.copyToClipboard(rapport.pdfUrl);
+                    Utils.showToast('Lien PDF copié dans le presse-papier', 'success');
+                    return;
+                }
+            } catch (error) {
+                console.error('Erreur partage PDF:', error);
+            }
+        }
+        
+        this.shareRapportAsText(rapport);
     }
 
-    editBrouillon(brouillonId) {
-        const data = this.loadAppData();
-        const brouillon = data.brouillons.find(b => b.id === brouillonId);
+    async shareRapportAsText(rapport) {
+        const shareText = `${rapport.title}\n\n${rapport.content}`;
         
-        if (brouillon) {
-            const modal = Utils.createModal(
-                t('modal.edit.title'),
-                `
-                    <label style="display: block; margin-bottom: 10px; font-weight: bold;">
-                        ${t('modal.edit.title.label')}
-                    </label>
-                    <input type="text" id="editTitle" class="modal-input" value="${Utils.escapeHtml(brouillon.title || t('new.report'))}">
-                    
-                    <label style="display: block; margin-bottom: 10px; font-weight: bold;">
-                        ${t('modal.edit.content.label')}
-                    </label>
-                    <textarea id="editContent" class="modal-textarea">${Utils.escapeHtml(brouillon.generatedReport || '')}</textarea>
-                `,
-                [
-                    { text: t('modal.edit.cancel'), class: 'btn-secondary', onclick: 'this.closest("[data-modal]").remove()' },
-                    { text: t('modal.edit.save'), class: 'btn-primary', onclick: `window.dataManager.saveEditedBrouillon('${brouillonId}', this)` }
-                ]
-            );
+        const shared = await Utils.shareContent(rapport.title, shareText);
+        
+        if (!shared) {
+            const copied = await Utils.copyToClipboard(shareText);
+            if (copied) {
+                Utils.showToast(t('toast.report.share.copied'), 'success');
+            } else {
+                Utils.showToast(t('toast.report.share.error'), 'error');
+            }
         }
     }
 
-    saveEditedBrouillon(brouillonId, buttonElement) {
+    translateRapport(rapportId) {
+        const data = this.loadAppData();
+        const rapport = data.rapports.find(r => r.id === rapportId);
+        
+        if (!rapport) return;
+        
+        let sourceRapport = rapport;
+        if (rapport.isTranslation && rapport.originalReportId) {
+            sourceRapport = data.rapports.find(r => r.id === rapport.originalReportId) || rapport;
+        }
+        
+        const modal = Utils.createModal(
+            t('modal.translate.title'),
+            `
+                <div style="margin-bottom: 20px; padding: 15px; background: var(--gray-50); border-radius: 10px;">
+                    <p style="margin: 0 0 10px 0;"><strong>${t('modal.translate.original')}:</strong></p>
+                    <p style="color: var(--gray-600); font-size: 14px; margin: 0; font-weight: 600;">
+                        ${Utils.escapeHtml(sourceRapport.title)}
+                    </p>
+                    <p style="color: var(--gray-500); font-size: 13px; margin-top: 8px;">
+                        ${Utils.truncateText(sourceRapport.content, 200)}
+                    </p>
+                </div>
+                
+                <label style="display: block; margin-bottom: 10px; font-weight: bold; color: var(--gray-800);">
+                    ${t('modal.translate.target')}
+                </label>
+                <select id="targetLanguage" class="modal-input" style="cursor: pointer;">
+                    <option value="en">🇬🇧 English</option>
+                    <option value="fr">🇫🇷 Français</option>
+                    <option value="zh">🇨🇳 中文</option>
+                    <option value="ja">🇯🇵 日本語</option>
+                    <option value="es">🇪🇸 Español</option>
+                    <option value="de">🇩🇪 Deutsch</option>
+                </select>
+                
+                <div style="margin-top: 20px; padding: 15px; background: var(--primary-ultra-light); border-radius: 10px; border-left: 4px solid var(--primary);">
+                    <p style="font-size: 13px; color: var(--gray-700); margin: 0; line-height: 1.6;">
+                        <strong>ℹ️ Note:</strong> ${t('modal.translate.note')}
+                    </p>
+                </div>
+            `,
+            [
+                { text: t('modal.edit.cancel'), class: 'btn-secondary', onclick: 'this.closest("[data-modal]").remove()' },
+                { 
+                    text: `🌐 ${t('modal.translate.button')}`, 
+                    class: 'btn-primary', 
+                    onclick: `window.dataManager.processTranslation('${sourceRapport.id}', this)` 
+                }
+            ]
+        );
+    }
+
+    async processTranslation(rapportId, buttonElement) {
         const modal = buttonElement.closest('[data-modal]');
-        const newTitle = modal.querySelector('#editTitle').value.trim();
-        const newContent = modal.querySelector('#editContent').value.trim();
+        const targetLang = modal.querySelector('#targetLanguage').value;
         
-        if (!newTitle || !newContent) {
-            Utils.showToast(t('toast.draft.error.empty'), 'error');
+        buttonElement.disabled = true;
+        buttonElement.innerHTML = '<div class="loading-spinner" style="display: inline-block; width: 16px; height: 16px; margin-right: 8px;"></div> ' + t('toast.translate.processing');
+        
+        const data = this.loadAppData();
+        const rapport = data.rapports.find(r => r.id === rapportId);
+        
+        if (!rapport) {
+            modal.remove();
             return;
         }
         
-        const data = this.loadAppData();
-        const brouillon = data.brouillons.find(b => b.id === brouillonId);
-        
-        if (brouillon) {
-            brouillon.title = newTitle;
-            brouillon.generatedReport = newContent;
-            brouillon.isModified = true;
+        try {
+            console.log('=== DÉBUT TRADUCTION ===');
             
-            this.saveAppData(data);
-            this.updateBrouillonsUI(data.brouillons);
+            const response = await fetch(CONFIG.N8N_TRANSLATE_WEBHOOK_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    reportId: rapportId,
+                    title: rapport.title,
+                    content: rapport.content,
+                    targetLanguage: targetLang,
+                    userId: window.appManager?.getCurrentUser()?.id || 'unknown',
+                    timestamp: new Date().toISOString()
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Erreur N8n: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            
+            if (!result.success) {
+                throw new Error('La traduction a échoué côté serveur');
+            }
+            
+            const translatedRapport = {
+                id: Utils.generateId('rapport_translated_'),
+                title: result.translatedTitle || `[${targetLang.toUpperCase()}] ${rapport.title}`,
+                content: result.translatedContent || result.content,
+                validatedAt: new Date().toISOString(),
+                createdAt: new Date().toISOString(),
+                
+                isTranslation: true,
+                originalReportId: rapportId,
+                detectedLanguage: result.detectedSourceLanguage || 'unknown',
+                translatedTo: targetLang,
+                translatedAt: new Date().toISOString(),
+                
+                folderId: rapport.folderId,
+                
+                hasPdf: false,
+                pdfGenerated: false,
+                pdfUrl: null
+            };
             
             modal.remove();
-            Utils.showToast(t('toast.draft.saved'), 'success');
-        }
-    }
-
-    async validateBrouillon(brouillonId) {
-        const data = this.loadAppData();
-        const folders = data.folders || [];
-
-        if (folders.length > 0) {
-            const foldersOptions = [
-                `<option value="">${t('folder.none')}</option>`,
-                ...folders.map(folder => 
-                    `<option value="${folder.id}">📁 ${Utils.escapeHtml(folder.name)}</option>`
-                )
-            ].join('');
-
-            const modal = Utils.createModal(
-                t('modal.validate.title'),
-                `
-                    <p style="margin-bottom: 20px;">${t('modal.validate.message')}</p>
-                    <label style="display: block; margin-bottom: 10px; font-weight: bold;">
-                        ${t('modal.validate.folder.label')}
-                    </label>
-                    <select id="validateFolderSelect" class="modal-input" style="cursor: pointer;">
-                        ${foldersOptions}
-                    </select>
-                `,
-                [
-                    { text: t('modal.edit.cancel'), class: 'btn-secondary', onclick: 'this.closest("[data-modal]").remove()' },
-                    { text: t('drafts.action.validate'), class: 'btn-primary', onclick: `window.dataManager.confirmValidateBrouillon('${brouillonId}', this)` }
-                ]
-            );
-        } else {
-            this.confirmValidateBrouillon(brouillonId);
-        }
-    }
-
-    async confirmValidateBrouillon(brouillonId, buttonElement = null) {
-    let selectedFolderId = null;
-
-    if (buttonElement) {
-        const modal = buttonElement.closest('[data-modal]');
-        const select = modal.querySelector('#validateFolderSelect');
-        selectedFolderId = select.value || null;
-        modal.remove();
-    }
-
-    const data = this.loadAppData();
-    const brouillonIndex = data.brouillons.findIndex(b => b.id === brouillonId);
-    
-    if (brouillonIndex !== -1) {
-        const brouillon = data.brouillons[brouillonIndex];
-        
-        const rapport = {
-            id: Utils.generateId('rapport_'),
-            title: brouillon.title || `${t('new.report')} - ${new Date().toLocaleDateString()}`,
-            content: brouillon.generatedReport,
-            validatedAt: new Date().toISOString(),
-            createdAt: brouillon.createdAt,
-            folderId: selectedFolderId,
-            sharedWith: [],
-            status: 'validated',
-            isModified: brouillon.isModified,
-            sourceType: brouillon.sourceType,
-            sourceInfo: brouillon.sourceInfo,
-            hasPdf: false,
-            pdfGenerated: false
-        };
-
-        try {
-            Utils.showToast(t('toast.report.pdf.generating'), 'info');
-            const pdf = await Utils.generatePDF(rapport.title, rapport.content);
-            rapport.pdfData = pdf.output('datauristring');
-            rapport.hasPdf = true;
-            rapport.pdfGenerated = true;
-            Utils.showToast(t('toast.report.pdf.generated'), 'success');
-        } catch (error) {
-            console.error('Erreur génération PDF:', error);
-            Utils.showToast(t('toast.report.pdf.error'), 'error');
-        }
-
-        data.rapports = data.rapports || [];
-        data.rapports.unshift(rapport);
-        data.brouillons.splice(brouillonIndex, 1);
-        
-        this.saveAppData(data);
-        
-        this.updateBrouillonsUI(data.brouillons);
-        this.updateRapportsUI(data.rapports);
-        
-        Utils.showToast(t('toast.draft.validated'), 'success');
-        
-        // ✅ NOUVEAU : Incrémenter le compteur dans Supabase et recharger le profil
-        try {
-            const currentUser = window.appManager?.getCurrentUser();
             
-            if (currentUser && window.supabaseClient) {
-                // 1. Incrémenter reports_this_month pour les utilisateurs FREE
-                if (currentUser.subscription_plan === 'free') {
-                    const { error: updateError } = await window.supabaseClient
-                        .from('profiles')
-                        .update({ 
-                            reports_this_month: (currentUser.reports_this_month || 0) + 1
-                        })
-                        .eq('id', currentUser.id);
-                    
-                    if (updateError) {
-                        console.error('❌ Erreur incrémentation compteur:', updateError);
-                    } else {
-                        console.log('✅ Compteur de rapports incrémenté');
-                    }
-                }
+            try {
+                Utils.showToast(t('toast.report.pdf.generating'), 'info', 2000);
+                const pdf = await Utils.generatePDF(translatedRapport.title, translatedRapport.content);
                 
-                // 2. Recharger le profil pour mettre à jour l'UI (badge, jauge, etc.)
-                if (window.appManager?.profileManager) {
-                    await window.appManager.profileManager.loadProfile(currentUser.id);
-                    console.log('✅ Profil rechargé avec nouveau compteur');
+                if (this.canUseSupabase()) {
+                    const pdfUrl = await this.uploadPdfToStorage(
+                        pdf.output('datauristring'),
+                        translatedRapport.title
+                    );
+                    
+                    if (pdfUrl) {
+                        translatedRapport.pdfUrl = pdfUrl;
+                        translatedRapport.hasPdf = true;
+                        translatedRapport.pdfGenerated = true;
+                    } else {
+                        translatedRapport.pdfData = pdf.output('datauristring');
+                        translatedRapport.hasPdf = true;
+                        translatedRapport.pdfGenerated = true;
+                    }
+                } else {
+                    translatedRapport.pdfData = pdf.output('datauristring');
+                    translatedRapport.hasPdf = true;
+                    translatedRapport.pdfGenerated = true;
+                }
+            } catch (pdfError) {
+                console.warn('Erreur génération PDF:', pdfError);
+            }
+            
+            data.rapports.unshift(translatedRapport);
+            this.saveAppData(data);
+            this.updateRapportsUI(data.rapports);
+            
+            const langName = this.getLanguageName(targetLang);
+            Utils.showToast(t('toast.translate.success', { lang: langName }), 'success');
+            
+            if (this.canUseSupabase()) {
+                try {
+                    const supabaseReport = this.convertReportToSupabase(translatedRapport);
+                    const { error } = await window.supabaseClient
+                        .from('reports')
+                        .insert([supabaseReport]);
+                    
+                    if (error) throw error;
+                    console.log('✅ Traduction sauvegardée dans Supabase');
+                } catch (error) {
+                    console.error('❌ Erreur sauvegarde traduction:', error);
                 }
             }
+            
+            console.log('=== TRADUCTION TERMINÉE ===');
+            
         } catch (error) {
-            console.error('❌ Erreur mise à jour profil après validation:', error);
-            // Ne pas bloquer l'utilisateur, juste logger l'erreur
+            console.error('Erreur traduction:', error);
+            modal.remove();
+            Utils.showToast(t('toast.translate.error') + ': ' + error.message, 'error');
         }
     }
-}
 
-    // === GESTION DES RAPPORTS FINALISÉS ===
-
-    getRapports() {
-        const data = this.loadAppData();
-        return data.rapports || [];
+    getLanguageName(code) {
+        const languages = {
+            'en': 'English',
+            'fr': 'Français',
+            'zh': '中文',
+            'ja': '日本語',
+            'es': 'Español',
+            'de': 'Deutsch',
+            'unknown': '?'
+        };
+        return languages[code] || code.toUpperCase();
     }
 
     viewRapport(rapportId) {
@@ -567,7 +1224,7 @@ getReportsCountText(count) {
                             <h4 style="margin: 0; color: var(--gray-800); font-size: 14px;">
                                 📄 ${t('modal.translate.original')}
                                 <span style="background: var(--gray-500); color: white; padding: 2px 8px; border-radius: 6px; font-size: 11px; margin-left: 8px;">
-                                    ${this.getLanguageName(original.detectedLanguage || translated.detectedSourceLanguage)}
+                                    ${this.getLanguageName(original.detectedLanguage || translated.detectedLanguage)}
                                 </span>
                             </h4>
                         </div>
@@ -609,286 +1266,15 @@ getReportsCountText(count) {
         );
     }
 
-    async shareRapport(rapportId) {
-        const data = this.loadAppData();
-        const rapport = data.rapports.find(r => r.id === rapportId);
-        
-        if (!rapport) return;
-        
-        if (rapport.hasPdf && rapport.pdfData) {
-            try {
-                const byteCharacters = atob(rapport.pdfData.split(',')[1]);
-                const byteNumbers = new Array(byteCharacters.length);
-                for (let i = 0; i < byteCharacters.length; i++) {
-                    byteNumbers[i] = byteCharacters.charCodeAt(i);
-                }
-                const byteArray = new Uint8Array(byteNumbers);
-                const pdfBlob = new Blob([byteArray], { type: 'application/pdf' });
-                
-                const filename = `${rapport.title.replace(/[^a-z0-9]/gi, '_')}.pdf`;
-                
-                if (navigator.share && navigator.canShare) {
-                    const file = new File([pdfBlob], filename, { type: 'application/pdf' });
-                    
-                    if (navigator.canShare({ files: [file] })) {
-                        await navigator.share({
-                            title: rapport.title,
-                            text: `${t('new.report')}: ${rapport.title}`,
-                            files: [file]
-                        });
-                        Utils.showToast(t('toast.report.shared'), 'success');
-                        return;
-                    }
-                }
-                
-                const pdfUrl = URL.createObjectURL(pdfBlob);
-                const emailSubject = encodeURIComponent(`${t('new.report')}: ${rapport.title}`);
-                const emailBody = encodeURIComponent(
-                    `Bonjour,\n\n${t('new.report')}: ${rapport.title}\n\n` +
-                    `${t('date.generated')}: ${Utils.formatDate(rapport.validatedAt)}\n\n` +
-                    `Le PDF est disponible en téléchargement : ${pdfUrl}\n\n` +
-                    `Cordialement`
-                );
-                
-                const mailtoLink = `mailto:?subject=${emailSubject}&body=${emailBody}`;
-                window.open(mailtoLink, '_blank');
-                
-                const a = document.createElement('a');
-                a.href = pdfUrl;
-                a.download = filename;
-                a.click();
-                
-                setTimeout(() => URL.revokeObjectURL(pdfUrl), 5000);
-                
-                Utils.showToast(t('toast.report.share.email'), 'success');
-                
-            } catch (error) {
-                console.error('Erreur lors du partage PDF:', error);
-                Utils.showToast(t('toast.report.share.error'), 'error');
-                this.shareRapportAsText(rapport);
-            }
-        } else {
-            Utils.showToast(t('toast.report.share.text'), 'info');
-            this.shareRapportAsText(rapport);
-        }
+    loadBrouillonsData() {
+        const brouillons = this.getBrouillons();
+        this.updateBrouillonsUI(brouillons);
     }
 
-    async shareRapportAsText(rapport) {
-        const shareText = `${rapport.title}\n\n${rapport.content}`;
-        
-        const shared = await Utils.shareContent(rapport.title, shareText);
-        
-        if (!shared) {
-            const copied = await Utils.copyToClipboard(shareText);
-            if (copied) {
-                Utils.showToast(t('toast.report.share.copied'), 'success');
-            } else {
-                Utils.showToast(t('toast.report.share.error'), 'error');
-            }
-        }
+    loadRapportsData() {
+        const rapports = this.getRapports();
+        this.updateRapportsUI(rapports);
     }
-
-    downloadPDF(rapportId) {
-        const data = this.loadAppData();
-        const rapport = data.rapports.find(r => r.id === rapportId);
-        
-        if (rapport && rapport.pdfData) {
-            const byteCharacters = atob(rapport.pdfData.split(',')[1]);
-            const byteNumbers = new Array(byteCharacters.length);
-            for (let i = 0; i < byteCharacters.length; i++) {
-                byteNumbers[i] = byteCharacters.charCodeAt(i);
-            }
-            const byteArray = new Uint8Array(byteNumbers);
-            const blob = new Blob([byteArray], { type: 'application/pdf' });
-            
-            const filename = `${rapport.title.replace(/[^a-z0-9]/gi, '_')}.pdf`;
-            Utils.downloadFile(blob, filename);
-            Utils.showToast(t('toast.report.pdf.downloaded'), 'success');
-        } else {
-            Utils.showToast(t('toast.report.pdf.unavailable'), 'error');
-        }
-    }
-
-    // === TRADUCTION DES RAPPORTS ===
-
-    translateRapport(rapportId) {
-        const data = this.loadAppData();
-        const rapport = data.rapports.find(r => r.id === rapportId);
-        
-        if (!rapport) return;
-        
-        let sourceRapport = rapport;
-        if (rapport.isTranslation && rapport.originalReportId) {
-            sourceRapport = data.rapports.find(r => r.id === rapport.originalReportId) || rapport;
-        }
-        
-        const modal = Utils.createModal(
-            t('modal.translate.title'),
-            `
-                <div style="margin-bottom: 20px; padding: 15px; background: var(--gray-50); border-radius: 10px;">
-                    <p style="margin: 0 0 10px 0;"><strong>${t('modal.translate.original')}:</strong></p>
-                    <p style="color: var(--gray-600); font-size: 14px; margin: 0; font-weight: 600;">
-                        ${Utils.escapeHtml(sourceRapport.title)}
-                    </p>
-                    <p style="color: var(--gray-500); font-size: 13px; margin-top: 8px;">
-                        ${Utils.truncateText(sourceRapport.content, 200)}
-                    </p>
-                </div>
-                
-                <label style="display: block; margin-bottom: 10px; font-weight: bold; color: var(--gray-800);">
-                    ${t('modal.translate.target')}
-                </label>
-                <select id="targetLanguage" class="modal-input" style="cursor: pointer;">
-                    <option value="en">🇬🇧 English</option><option value="fr">🇫🇷 Français</option>
-                    <option value="zh">🇨🇳 中文</option>
-                    <option value="ja">🇯🇵 日本語</option>
-                    <option value="es">🇪🇸 Español</option>
-                    <option value="de">🇩🇪 Deutsch</option>
-                </select>
-                
-                <div style="margin-top: 20px; padding: 15px; background: var(--primary-ultra-light); border-radius: 10px; border-left: 4px solid var(--primary);">
-                    <p style="font-size: 13px; color: var(--gray-700); margin: 0; line-height: 1.6;">
-                        <strong>ℹ️ Note:</strong> ${t('modal.translate.note')}
-                    </p>
-                </div>
-            `,
-            [
-                { text: t('modal.edit.cancel'), class: 'btn-secondary', onclick: 'this.closest("[data-modal]").remove()' },
-                { 
-                    text: `🌐 ${t('modal.translate.button')}`, 
-                    class: 'btn-primary', 
-                    onclick: `window.dataManager.processTranslation('${sourceRapport.id}', this)` 
-                }
-            ]
-        );
-    }
-
-    async processTranslation(rapportId, buttonElement) {
-        const modal = buttonElement.closest('[data-modal]');
-        const targetLang = modal.querySelector('#targetLanguage').value;
-        
-        buttonElement.disabled = true;
-        buttonElement.innerHTML = '<div class="loading-spinner" style="display: inline-block; width: 16px; height: 16px; margin-right: 8px;"></div> ' + t('toast.translate.processing');
-        
-        const data = this.loadAppData();
-        const rapport = data.rapports.find(r => r.id === rapportId);
-        
-        if (!rapport) {
-            modal.remove();
-            return;
-        }
-        
-        try {
-            console.log('=== DÉBUT TRADUCTION ===');
-            console.log('Rapport ID:', rapportId);
-            console.log('Langue cible:', targetLang);
-            
-            const response = await fetch(CONFIG.N8N_TRANSLATE_WEBHOOK_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    reportId: rapportId,
-                    title: rapport.title,
-                    content: rapport.content,
-                    targetLanguage: targetLang,
-                    userId: window.app?.getCurrentUser()?.username || 'unknown',
-                    timestamp: new Date().toISOString()
-                })
-            });
-            
-            console.log('Response status:', response.status);
-            
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Erreur N8n: ${response.status} - ${errorText}`);
-            }
-            
-            const result = await response.json();
-            console.log('Traduction reçue:', result);
-            
-            if (!result.success) {
-                throw new Error('La traduction a échoué côté serveur');
-            }
-            
-            const translatedRapport = {
-                ...rapport,
-                id: Utils.generateId('rapport_translated_'),
-                title: result.translatedTitle || `[${targetLang.toUpperCase()}] ${rapport.title}`,
-                content: result.translatedContent || result.content,
-                validatedAt: new Date().toISOString(),
-                
-                isTranslation: true,
-                originalReportId: rapportId,
-                detectedSourceLanguage: result.detectedSourceLanguage || 'unknown',
-                translatedTo: targetLang,
-                translatedAt: new Date().toISOString(),
-                
-                folderId: rapport.folderId,
-                
-                hasPdf: false,
-                pdfGenerated: false
-            };
-            
-            modal.remove();
-            
-            try {
-                Utils.showToast(t('toast.report.pdf.generating'), 'info', 2000);
-                const pdf = await Utils.generatePDF(translatedRapport.title, translatedRapport.content);
-                translatedRapport.pdfData = pdf.output('datauristring');
-                translatedRapport.hasPdf = true;
-                translatedRapport.pdfGenerated = true;
-            } catch (pdfError) {
-                console.warn('Erreur génération PDF:', pdfError);
-            }
-            
-            data.rapports.unshift(translatedRapport);
-            this.saveAppData(data);
-            
-            this.updateRapportsUI(data.rapports);
-            
-            const langName = this.getLanguageName(targetLang);
-            Utils.showToast(t('toast.translate.success', { lang: langName }), 'success');
-            
-            console.log('=== TRADUCTION TERMINÉE ===');
-            
-        } catch (error) {
-            console.error('Erreur traduction:', error);
-            modal.remove();
-            Utils.showToast(t('toast.translate.error') + ': ' + error.message, 'error');
-        }
-    }
-
-    getLanguageName(code) {
-        const languages = {
-            'en': 'English',
-            'fr': 'Français',
-            'zh': '中文',
-            'ja': '日本語',
-            'es': 'Español',
-            'de': 'Deutsch',
-            'unknown': '?'
-        };
-        return languages[code] || code.toUpperCase();
-    }
-
-    filterRapports(searchTerm) {
-        const data = this.loadAppData();
-        const rapports = data.rapports || [];
-        
-        if (!searchTerm) {
-            this.updateRapportsUI(rapports);
-            return;
-        }
-
-        const filtered = rapports.filter(rapport => 
-            rapport.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            rapport.content.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-        
-        this.updateRapportsUI(filtered);
-    }
-
-    // === MÉTHODES UTILITAIRES ===
 
     extractTitleFromContent(content) {
         if (!content) return t('report.title.default');
@@ -910,12 +1296,33 @@ getReportsCountText(count) {
         return t('report.title.default');
     }
 
-    // === MISE À JOUR DE L'INTERFACE ===
+    filterRapports(searchTerm) {
+        const data = this.loadAppData();
+        const rapports = data.rapports || [];
+        
+        if (!searchTerm) {
+            this.updateRapportsUI(rapports);
+            return;
+        }
 
+        const filtered = rapports.filter(rapport => 
+            rapport.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            rapport.content.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        
+        this.updateRapportsUI(filtered);
+    }
+
+    exportRapport(id) {
+        this.downloadPDF(id);
+    }
+
+    // === AFFICHAGE DES BROUILLONS ===
+    
     updateBrouillonsUI(brouillons) {
         const container = document.getElementById('brouillonsList');
         if (!container) return;
-        
+
         if (!brouillons || brouillons.length === 0) {
             container.innerHTML = `
                 <div class="empty-state">
@@ -931,7 +1338,7 @@ getReportsCountText(count) {
             const date = Utils.formatDate(brouillon.createdAt);
             let statusClass = '';
             let statusIcon = '📄';
-            
+
             if (brouillon.status === 'generating') {
                 statusClass = 'status-generating';
                 statusIcon = '⏳';
@@ -942,7 +1349,6 @@ getReportsCountText(count) {
 
             const content = brouillon.generatedReport || t('status.generating');
             const truncatedContent = Utils.truncateText(content, 100);
-
             const sourceIndicator = brouillon.sourceType === 'upload' ? '📁' : '🎤';
 
             return `
@@ -970,7 +1376,8 @@ getReportsCountText(count) {
         }).join('');
     }
 
-    // === NOUVELLE VERSION : INTERFACE STYLE GOOGLE DRIVE ===
+    // === AFFICHAGE DES RAPPORTS ===
+    
     updateRapportsUI(rapports) {
         const container = document.getElementById('rapportsList');
         const counter = document.getElementById('rapportsCount');
@@ -987,9 +1394,6 @@ getReportsCountText(count) {
         
         if (!container) return;
         
-        const data = this.loadAppData();
-        const folders = data.folders || [];
-
         if (!rapports || rapports.length === 0) {
             container.innerHTML = `
                 <div class="empty-state">
@@ -1001,13 +1405,14 @@ getReportsCountText(count) {
             return;
         }
 
-        // SI ON EST DANS UN DOSSIER SPÉCIFIQUE
+        const data = this.loadAppData();
+        const folders = data.folders || [];
+
         if (this.currentFolderId) {
             const currentFolder = folders.find(f => f.id === this.currentFolderId);
             const folderRapports = rapports.filter(r => r.folderId === this.currentFolderId);
             
             container.innerHTML = `
-                <!-- FIL D'ARIANE (BREADCRUMB) -->
                 <div class="breadcrumb-container">
                     <button 
                         class="breadcrumb-back-btn"
@@ -1038,7 +1443,6 @@ getReportsCountText(count) {
                     </div>
                 </div>
                 
-                <!-- LISTE DES RAPPORTS DU DOSSIER -->
                 <div class="reports-grid">
                     ${folderRapports.length > 0 ? folderRapports.map(rapport => this.renderRapportCard(rapport)).join('') : `
                         <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--gray-500);">
@@ -1051,12 +1455,10 @@ getReportsCountText(count) {
             return;
         }
 
-        // VUE PRINCIPALE : DOSSIERS EN HAUT, RAPPORTS SANS DOSSIER EN BAS
         const rapportsSansDossier = rapports.filter(r => !r.folderId);
         
         let html = '';
 
-        // === SECTION DOSSIERS ===
         if (folders.length > 0) {
             html += `
                 <div style="margin-bottom: 40px;">
@@ -1098,7 +1500,6 @@ getReportsCountText(count) {
             `;
         }
 
-        // === SECTION RAPPORTS SANS DOSSIER ===
         if (rapportsSansDossier.length > 0) {
             html += `
                 <div>
@@ -1117,13 +1518,11 @@ getReportsCountText(count) {
         container.innerHTML = html;
     }
 
-    // Rendu carte de rapport (pour vue dossier) - VERSION FINALE
     renderRapportCard(rapport) {
         const dateValidated = new Date(rapport.validatedAt).toLocaleDateString();
         const truncatedContent = Utils.truncateText(rapport.content, 150);
         
-        // UN SEUL EMOJI pour le type de source
-        let sourceIcon = '🎤'; // Par défaut vocal
+        let sourceIcon = '🎤';
         if (rapport.sourceType === 'upload') {
             sourceIcon = '📁';
         }
@@ -1202,13 +1601,11 @@ getReportsCountText(count) {
         `;
     }
 
-    // Rendu compact pour les rapports sans dossier - VERSION FINALE
     renderRapportCardCompact(rapport) {
         const dateValidated = new Date(rapport.validatedAt).toLocaleDateString();
         const truncatedContent = Utils.truncateText(rapport.content, 150);
         
-        // UN SEUL EMOJI pour le type de source
-        let sourceIcon = '🎤'; // Par défaut vocal
+        let sourceIcon = '🎤';
         if (rapport.sourceType === 'upload') {
             sourceIcon = '📁';
         }
@@ -1220,7 +1617,14 @@ getReportsCountText(count) {
         
         if (rapport.isTranslation) {
             translationBadge = `
-                <span class="translation-badge">
+                <span style="
+                    background: linear-gradient(135deg, #8b5cf6, #7c3aed); 
+                    color: white; 
+                    padding: 3px 8px; 
+                    border-radius: 10px; 
+                    font-size: 10px; 
+                    font-weight: 700;
+                ">
                     🌐 ${rapport.translatedTo.toUpperCase()}
                 </span>
             `;
@@ -1261,7 +1665,6 @@ getReportsCountText(count) {
                     this.querySelector('.report-compact-indicator').style.opacity='0';
                 "
             >
-                <!-- Indicateur gauche -->
                 <div class="report-compact-indicator" style="
                     position: absolute;
                     left: 0;
@@ -1273,7 +1676,6 @@ getReportsCountText(count) {
                     transition: all 0.2s ease;
                 "></div>
                 
-                <!-- En-tête du rapport -->
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 15px;">
                     <div style="flex: 1; min-width: 0;">
                         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;">
@@ -1319,7 +1721,6 @@ getReportsCountText(count) {
                     </div>
                 </div>
                 
-                <!-- Boutons d'action - CHARTE GRAPHIQUE COLORÉE -->
                 <div style="
                     display: flex; 
                     gap: 8px; 
