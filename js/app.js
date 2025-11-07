@@ -603,54 +603,160 @@ class AppManager {
     downloadPDF(id) { return this.dataManager.downloadPDF(id); }
 }
 
-document.addEventListener('DOMContentLoaded', async function() {
+// ============================================
+// GESTION DE LA VÉRIFICATION D'EMAIL SUPABASE
+// ============================================
+
+async function handleEmailVerification() {
+    console.log('🔍 Vérification des paramètres URL pour confirmation email...');
     
+    // Vérifier dans l'URL (query params)
     const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
+    const tokenHash = urlParams.get('token_hash');
     const type = urlParams.get('type');
     
-    if (token && type === 'signup') {
-        console.log('🔐 Confirmation email détectée...');
+    // Vérifier aussi dans le hash (parfois Supabase utilise le hash)
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const accessToken = hashParams.get('access_token');
+    const refreshToken = hashParams.get('refresh_token');
+    
+    // CAS 1 : Token hash dans l'URL (ancien format)
+    if (tokenHash && type === 'signup') {
+        console.log('🔐 Confirmation email détectée (token_hash)...');
         
+        // Attendre que Supabase soit prêt
         let attempts = 0;
         const maxAttempts = 50;
         
-        const waitForSupabase = setInterval(async () => {
+        while (!window.supabaseClient && attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 100));
             attempts++;
-            
-            if (window.supabaseClient || attempts >= maxAttempts) {
-                clearInterval(waitForSupabase);
-                
-                if (!window.supabaseClient) {
-                    console.error('❌ Supabase non disponible pour la confirmation');
-                    Utils.showToast('Erreur de confirmation. Rechargez la page.', 'error');
-                    return;
-                }
-                
-                try {
-                    const { error } = await window.supabaseClient.auth.verifyOtp({
-                        token_hash: token,
-                        type: 'signup'
-                    });
-                    
-                    if (error) {
-                        console.error('❌ Erreur confirmation:', error);
-                        Utils.showToast('Erreur de confirmation. Le lien a peut-être expiré.', 'error');
-                    } else {
-                        console.log('✅ Email confirmé avec succès');
-                        Utils.showToast('✅ Email confirmé ! Vous pouvez maintenant vous connecter.', 'success', 5000);
-                    }
-                    
-                    window.history.replaceState({}, document.title, '/app.html');
-                    
-                } catch (error) {
-                    console.error('❌ Exception confirmation:', error);
-                    Utils.showToast('Erreur de confirmation. Contactez le support.', 'error');
-                }
+        }
+        
+        if (!window.supabaseClient) {
+            console.error('❌ Supabase non disponible pour la confirmation');
+            if (typeof Utils !== 'undefined') {
+                Utils.showToast('Erreur de confirmation. Rechargez la page.', 'error');
             }
-        }, 100);
+            return false;
+        }
+        
+        try {
+            const { data, error } = await window.supabaseClient.auth.verifyOtp({
+                token_hash: tokenHash,
+                type: 'signup'
+            });
+            
+            if (error) {
+                console.error('❌ Erreur confirmation:', error);
+                if (typeof Utils !== 'undefined') {
+                    Utils.showToast('Erreur de confirmation. Le lien a peut-être expiré.', 'error');
+                }
+                
+                // Nettoyer l'URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+                return false;
+            }
+            
+            console.log('✅ Email confirmé avec succès !', data);
+            
+            // ✅ DÉCONNECTER l'utilisateur pour qu'il se connecte manuellement
+            try {
+                await window.supabaseClient.auth.signOut();
+                console.log('🚪 Utilisateur déconnecté après confirmation');
+            } catch (signOutError) {
+                console.error('⚠️ Erreur déconnexion:', signOutError);
+            }
+            
+            if (typeof Utils !== 'undefined') {
+                Utils.showToast('✅ Email confirmé ! Vous pouvez maintenant vous connecter avec vos identifiants.', 'success', 6000);
+            }
+            
+            // Nettoyer l'URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+            
+            return true;
+            
+        } catch (error) {
+            console.error('❌ Exception confirmation:', error);
+            if (typeof Utils !== 'undefined') {
+                Utils.showToast('Erreur de confirmation. Contactez le support.', 'error');
+            }
+            
+            // Nettoyer l'URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+            return false;
+        }
     }
     
+    // CAS 2 : Access token dans le hash (nouveau format Supabase)
+    if (accessToken && refreshToken) {
+        console.log('🔐 Tokens d\'authentification détectés dans le hash...');
+        
+        // Attendre que Supabase soit prêt
+        let attempts = 0;
+        const maxAttempts = 50;
+        
+        while (!window.supabaseClient && attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+        }
+        
+        if (!window.supabaseClient) {
+            console.error('❌ Supabase non disponible');
+            return false;
+        }
+        
+        try {
+            // Supabase gère automatiquement les tokens dans le hash
+            console.log('✅ Supabase va gérer automatiquement les tokens');
+            
+            // ✅ DÉCONNECTER l'utilisateur pour qu'il se connecte manuellement
+            try {
+                await window.supabaseClient.auth.signOut();
+                console.log('🚪 Utilisateur déconnecté après confirmation');
+            } catch (signOutError) {
+                console.error('⚠️ Erreur déconnexion:', signOutError);
+            }
+            
+            if (typeof Utils !== 'undefined') {
+                Utils.showToast('✅ Email confirmé ! Connectez-vous avec vos identifiants pour accéder à VOCALIA.', 'success', 6000);
+            }
+            
+            // Nettoyer l'URL après un court délai
+            setTimeout(() => {
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }, 2000);
+            
+            return true;
+            
+        } catch (error) {
+            console.error('❌ Erreur traitement tokens:', error);
+            return false;
+        }
+    }
+    
+    console.log('ℹ️ Pas de token de confirmation détecté');
+    return false;
+}
+
+// ============================================
+// INITIALISATION PRINCIPALE
+// ============================================
+
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log('🚀 Démarrage de l\'application VOCALIA...');
+    
+    // 1. VÉRIFIER ET GÉRER LA CONFIRMATION D'EMAIL EN PREMIER
+    const emailVerified = await handleEmailVerification();
+    
+    if (emailVerified) {
+        console.log('✅ Email vérifié, attente de la session...');
+        // Attendre un peu que Supabase établisse la session
+        await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    
+    // 2. VÉRIFIER LES DÉPENDANCES
     if (typeof CONFIG === 'undefined') {
         console.error('❌ CONFIG non défini. Vérifiez que config.js est chargé.');
         return;
@@ -671,6 +777,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         return;
     }
 
+    // 3. INITIALISER L'APPLICATION
     try {
         window.appManager = new AppManager();
         console.log('✅ Application initialisée avec succès (Mode Supabase Auth + Email Confirmation)');
@@ -678,6 +785,10 @@ document.addEventListener('DOMContentLoaded', async function() {
         console.error('❌ Erreur lors de l\'initialisation:', error);
     }
 });
+
+// ============================================
+// GESTION DES ÉVÉNEMENTS GLOBAUX
+// ============================================
 
 window.addEventListener('beforeunload', function() {
     if (window.appManager && window.appManager.audioManager) {
@@ -692,6 +803,10 @@ window.addEventListener('error', function(event) {
         Utils.showToast(t('toast.error.unexpected'), 'error');
     }
 });
+
+// ============================================
+// EXPOSITION DES FONCTIONS GLOBALES
+// ============================================
 
 window.editBrouillon = function(id) { 
     if (window.dataManager) window.dataManager.editBrouillon(id); 
