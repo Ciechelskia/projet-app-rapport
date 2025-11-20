@@ -146,7 +146,7 @@ class DataManager {
             content: report.content,
             validated_at: report.validatedAt || new Date().toISOString(),
             created_at: report.createdAt || new Date().toISOString(),
-            folder_id: report.folderId || null,
+            folder_id: report.folderId ? parseInt(report.folderId) : null,
             status: 'validated',
             source_type: report.sourceType || 'recording',
             source_info: report.sourceInfo,
@@ -891,32 +891,43 @@ class DataManager {
     }
 
     async moveRapportToFolder(rapportId, newFolderId) {
-        const data = this.loadAppData();
-        const rapport = data.rapports.find(r => r.id === rapportId);
+    const data = this.loadAppData();
+    const rapport = data.rapports.find(r => r.id === rapportId);
+    
+    if (rapport) {
+        rapport.folderId = newFolderId;
+        this.saveAppData(data);
+        this.updateRapportsUI(data.rapports);
         
-        if (rapport) {
-            rapport.folderId = newFolderId;
-            this.saveAppData(data);
-            this.updateRapportsUI(data.rapports);
-            
-            const folderName = newFolderId ? data.folders.find(f => f.id === newFolderId)?.name : 'Aucun dossier';
-            Utils.showToast(`Rapport déplacé vers "${folderName}"`, 'success');
-            
-            if (this.canUseSupabase()) {
-                try {
-                    const { error } = await window.supabaseClient
-                        .from('reports')
-                        .update({ folder_id: newFolderId })
-                        .eq('id', parseInt(rapportId));
-                    
-                    if (error) throw error;
-                    console.log('✅ Rapport déplacé dans Supabase');
-                } catch (error) {
-                    console.error('❌ Erreur déplacement rapport:', error);
-                }
+        const folderName = newFolderId ? data.folders.find(f => f.id === newFolderId)?.name : 'Aucun dossier';
+        Utils.showToast(`Rapport déplacé vers "${folderName}"`, 'success');
+        
+        if (this.canUseSupabase()) {
+            try {
+                // ✅ CORRECTION : Convertir les IDs en nombre ou null
+                const supabaseReportId = parseInt(rapportId);
+                const supabaseFolderId = newFolderId ? parseInt(newFolderId) : null;
+                
+                console.log('📤 Déplacement Supabase:', {
+                    reportId: supabaseReportId,
+                    folderId: supabaseFolderId
+                });
+                
+                const { error } = await window.supabaseClient
+                    .from('reports')
+                    .update({ folder_id: supabaseFolderId })  // ✅ NULL ou NUMBER
+                    .eq('id', supabaseReportId);
+                
+                if (error) throw error;
+                
+                console.log('✅ Rapport déplacé dans Supabase');
+            } catch (error) {
+                console.error('❌ Erreur déplacement rapport:', error);
+                console.error('Détails:', error.message);
             }
         }
     }
+}
 
     // ✅ CORRECTION : showCreateFolderModal avec TEXTE EN DUR
     showCreateFolderModal() {
