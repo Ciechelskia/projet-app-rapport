@@ -260,6 +260,13 @@ const TRANSLATIONS = {
         'month.october': 'octobre',
         'month.november': 'novembre',
         'month.december': 'décembre',
+        'limit.reached.title': 'Limite mensuelle atteinte !',
+        'limit.reached.message': 'Vous avez utilisé vos {limit} rapports gratuits ce mois-ci.',
+        'limit.upgrade.cta': 'Passez au plan PRO pour créer des rapports illimités !',
+        'feature.folders.title': 'Dossiers réservés au plan PRO',
+        'feature.folders.message': 'Organisez vos rapports dans des dossiers illimités avec le plan PRO.',
+        'feature.translation.title': 'Traduction réservée au plan PRO',
+        'feature.translation.message': 'Traduisez instantanément vos rapports en 6 langues avec le plan PRO.',
     },
     
     en: {
@@ -522,6 +529,13 @@ const TRANSLATIONS = {
         'month.october': 'October',
         'month.november': 'November',
         'month.december': 'December',
+        'limit.reached.title': 'Monthly limit reached!',
+        'limit.reached.message': 'You have used your {limit} free reports this month.',
+        'limit.upgrade.cta': 'Upgrade to PRO plan for unlimited reports!',
+        'feature.folders.title': 'Folders reserved for PRO plan',
+        'feature.folders.message': 'Organize your reports in unlimited folders with PRO plan.',
+        'feature.translation.title': 'Translation reserved for PRO plan',
+        'feature.translation.message': 'Instantly translate your reports into 6 languages with PRO plan.',
             },
     
     zh: {
@@ -784,6 +798,13 @@ const TRANSLATIONS = {
         'month.october': '十月',
         'month.november': '十一月',
         'month.december': '十二月',
+       'limit.reached.title': '已达到月度限制！',
+        'limit.reached.message': '您已使用本月的{limit}份免费报告。',
+        'limit.upgrade.cta': '升级到PRO计划以获得无限报告！',
+        'feature.folders.title': 'PRO计划专属文件夹',
+        'feature.folders.message': '使用PRO计划在无限文件夹中组织您的报告。',
+        'feature.translation.title': 'PRO计划专属翻译',
+        'feature.translation.message': '使用PRO计划将您的报告即时翻译成6种语言。',
     },
     
     ja: {
@@ -1046,6 +1067,13 @@ const TRANSLATIONS = {
         'month.october': '10月',
         'month.november': '11月',
         'month.december': '12月',
+        'limit.reached.title': '月間制限に達しました！',
+        'limit.reached.message': '今月の{limit}件の無料レポートを使用しました。',
+        'limit.upgrade.cta': 'PROプランにアップグレードして無制限のレポートを！',
+        'feature.folders.title': 'PROプラン限定フォルダ',
+        'feature.folders.message': 'PROプランで無制限のフォルダにレポートを整理できます。',
+        'feature.translation.title': 'PROプラン限定翻訳',
+        'feature.translation.message': 'PROプランでレポートを6言語に即座に翻訳できます。',
     }
 };
 
@@ -1053,3 +1081,73 @@ const TRANSLATIONS = {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = TRANSLATIONS;
 }
+// Export pour utilisation
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = TRANSLATIONS;
+}
+
+// ============================================
+// ✅ CORRECTION : Créer l'alias et la fonction t()
+// ============================================
+
+// Créer l'alias en minuscules pour compatibilité
+const translations = TRANSLATIONS;
+
+// Langue par défaut
+let currentLanguage = 'fr';
+
+// ✅ FONCTION DE TRADUCTION (celle qui manquait !)
+function t(key, params = {}) {
+    // Récupérer la traduction depuis TRANSLATIONS
+    let text = TRANSLATIONS[currentLanguage]?.[key] || TRANSLATIONS['fr']?.[key] || key;
+    
+    // Remplacer les paramètres {param} par leurs valeurs
+    Object.keys(params).forEach(param => {
+        text = text.replace(new RegExp(`\\{${param}\\}`, 'g'), params[param]);
+    });
+    
+    return text;
+}
+
+// Fonction pour changer de langue
+function setLanguage(lang) {
+    if (TRANSLATIONS[lang]) {
+        currentLanguage = lang;
+        localStorage.setItem('language', lang);
+        console.log(`🌍 Langue changée : ${lang}`);
+        
+        // Recharger l'interface si elle est déjà chargée
+        if (window.dataManager) {
+            window.dataManager.loadBrouillonsData();
+            window.dataManager.loadRapportsData();
+        }
+    } else {
+        console.warn(`⚠️ Langue non supportée : ${lang}`);
+    }
+}
+
+// Charger la langue sauvegardée au démarrage
+function loadSavedLanguage() {
+    const saved = localStorage.getItem('language');
+    if (saved && TRANSLATIONS[saved]) {
+        currentLanguage = saved;
+        console.log(`✅ Langue chargée : ${saved}`);
+    } else {
+        console.log(`✅ Langue par défaut : ${currentLanguage}`);
+    }
+}
+
+// ✅ INITIALISER au chargement de la page
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadSavedLanguage);
+} else {
+    // Le DOM est déjà chargé
+    loadSavedLanguage();
+}
+
+// ✅ Exposer les fonctions globalement pour que les autres fichiers puissent les utiliser
+window.t = t;
+window.setLanguage = setLanguage;
+window.currentLanguage = () => currentLanguage;
+
+console.log('✅ Système de traduction initialisé');

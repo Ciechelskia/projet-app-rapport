@@ -1,5 +1,6 @@
 // ============================================
 // DATA MANAGER - VERSION SUPABASE COMPLÈTE
+// CORRIGÉ : Boutons avec texte en dur
 // ============================================
 
 class DataManager {
@@ -274,7 +275,9 @@ class DataManager {
         } catch (error) {
             console.error('Erreur lors du nettoyage:', error);
         }
-    }// === GESTION DES BROUILLONS ===
+    }
+
+    // === GESTION DES BROUILLONS ===
 
     getBrouillons() {
         const data = this.loadAppData();
@@ -385,31 +388,49 @@ class DataManager {
                 console.error('❌ Erreur suppression brouillon:', error);
             }
         }
-    }
-
+    }// ✅ CORRECTION : editBrouillon avec TEXTE EN DUR
     editBrouillon(brouillonId) {
         const data = this.loadAppData();
         const brouillon = data.brouillons.find(b => b.id === brouillonId);
         
         if (brouillon) {
             const modal = Utils.createModal(
-                t('modal.edit.title'),
+                'Éditer le rapport',
                 `
                     <label style="display: block; margin-bottom: 10px; font-weight: bold;">
-                        ${t('modal.edit.title.label')}
+                        Titre du rapport :
                     </label>
-                    <input type="text" id="editTitle" class="modal-input" value="${Utils.escapeHtml(brouillon.title || t('new.report'))}">
+                    <input type="text" id="editTitle" class="modal-input" value="${Utils.escapeHtml(brouillon.title || 'Nouveau rapport')}">
                     
-                    <label style="display: block; margin-bottom: 10px; font-weight: bold;">
-                        ${t('modal.edit.content.label')}
+                    <label style="display: block; margin-bottom: 10px; font-weight: bold; margin-top: 20px;">
+                        Contenu :
                     </label>
                     <textarea id="editContent" class="modal-textarea">${Utils.escapeHtml(brouillon.generatedReport || '')}</textarea>
                 `,
-                [
-                    { text: t('modal.edit.cancel'), class: 'btn-secondary', onclick: 'this.closest("[data-modal]").remove()' },
-                    { text: t('modal.edit.save'), class: 'btn-primary', onclick: `window.dataManager.saveEditedBrouillon('${brouillonId}', this)` }
-                ]
+                []
             );
+            
+            const footer = modal.querySelector('.modal-footer');
+            footer.innerHTML = '';
+            
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'btn-secondary';
+            cancelBtn.textContent = 'Annuler'; // ✅ TEXTE EN DUR
+            cancelBtn.addEventListener('click', () => {
+                console.log('🔴 Édition annulée');
+                modal.remove();
+            });
+            
+            const saveBtn = document.createElement('button');
+            saveBtn.className = 'btn-primary';
+            saveBtn.textContent = '💾 Sauvegarder'; // ✅ TEXTE EN DUR
+            saveBtn.addEventListener('click', () => {
+                console.log('✅ Sauvegarde du brouillon');
+                this.saveEditedBrouillon(brouillonId, saveBtn);
+            });
+            
+            footer.appendChild(cancelBtn);
+            footer.appendChild(saveBtn);
         }
     }
 
@@ -419,7 +440,7 @@ class DataManager {
         const newContent = modal.querySelector('#editContent').value.trim();
         
         if (!newTitle || !newContent) {
-            Utils.showToast(t('toast.draft.error.empty'), 'error');
+            Utils.showToast('Le titre et le contenu ne peuvent pas être vides', 'error');
             return;
         }
         
@@ -435,7 +456,7 @@ class DataManager {
             this.updateBrouillonsUI(data.brouillons);
             
             modal.remove();
-            Utils.showToast(t('toast.draft.saved'), 'success');
+            Utils.showToast('Brouillon sauvegardé', 'success');
             
             if (this.canUseSupabase()) {
                 try {
@@ -457,58 +478,82 @@ class DataManager {
         }
     }
 
+    // ✅ CORRECTION : validateBrouillon avec TEXTE EN DUR
     async validateBrouillon(brouillonId) {
         const data = this.loadAppData();
         const folders = data.folders || [];
 
         if (folders.length > 0) {
             const foldersOptions = [
-                `<option value="">${t('folder.none')}</option>`,
+                `<option value="">Aucun dossier</option>`,
                 ...folders.map(folder => 
                     `<option value="${folder.id}">📁 ${Utils.escapeHtml(folder.name)}</option>`
                 )
             ].join('');
 
             const modal = Utils.createModal(
-                t('modal.validate.title'),
+                'Valider le brouillon',
                 `
-                    <p style="margin-bottom: 20px;">${t('modal.validate.message')}</p>
+                    <p style="margin-bottom: 20px;">Choisissez un dossier pour organiser ce rapport (optionnel)</p>
                     <label style="display: block; margin-bottom: 10px; font-weight: bold;">
-                        ${t('modal.validate.folder.label')}
+                        Dossier de destination :
                     </label>
                     <select id="validateFolderSelect" class="modal-input" style="cursor: pointer;">
                         ${foldersOptions}
                     </select>
                 `,
-                [
-                    { text: t('modal.edit.cancel'), class: 'btn-secondary', onclick: 'this.closest("[data-modal]").remove()' },
-                    { text: t('drafts.action.validate'), class: 'btn-primary', onclick: `window.dataManager.confirmValidateBrouillon('${brouillonId}', this)` }
-                ]
+                []
             );
+            
+            const footer = modal.querySelector('.modal-footer');
+            footer.innerHTML = '';
+            
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'btn-secondary';
+            cancelBtn.textContent = 'Annuler'; // ✅ TEXTE EN DUR
+            cancelBtn.addEventListener('click', () => {
+                console.log('🔴 Validation annulée');
+                modal.remove();
+            });
+            
+            const validateBtn = document.createElement('button');
+            validateBtn.className = 'btn-primary';
+            validateBtn.textContent = '✅ Valider'; // ✅ TEXTE EN DUR
+            validateBtn.addEventListener('click', () => {
+                console.log('✅ Validation confirmée');
+                const select = modal.querySelector('#validateFolderSelect');
+                const selectedFolderId = select.value || null;
+                modal.remove();
+                
+                const brouillon = data.brouillons.find(b => b.id === brouillonId);
+                if (brouillon) {
+                    brouillon._tempFolderId = selectedFolderId;
+                }
+                
+                this.confirmValidateBrouillon(brouillonId, null);
+            });
+            
+            footer.appendChild(cancelBtn);
+            footer.appendChild(validateBtn);
+            
         } else {
             this.confirmValidateBrouillon(brouillonId);
         }
     }
 
     async confirmValidateBrouillon(brouillonId, buttonElement = null) {
-        let selectedFolderId = null;
-
-        if (buttonElement) {
-            const modal = buttonElement.closest('[data-modal]');
-            const select = modal.querySelector('#validateFolderSelect');
-            selectedFolderId = select.value || null;
-            modal.remove();
-        }
-
         const data = this.loadAppData();
         const brouillonIndex = data.brouillons.findIndex(b => b.id === brouillonId);
         
         if (brouillonIndex !== -1) {
             const brouillon = data.brouillons[brouillonIndex];
             
+            const selectedFolderId = brouillon._tempFolderId || null;
+            delete brouillon._tempFolderId;
+            
             const rapport = {
                 id: Utils.generateId('rapport_'),
-                title: brouillon.title || `${t('new.report')} - ${new Date().toLocaleDateString()}`,
+                title: brouillon.title || `Nouveau rapport - ${new Date().toLocaleDateString()}`,
                 content: brouillon.generatedReport,
                 validatedAt: new Date().toISOString(),
                 createdAt: brouillon.createdAt,
@@ -524,7 +569,7 @@ class DataManager {
             };
 
             try {
-                Utils.showToast(t('toast.report.pdf.generating'), 'info');
+                Utils.showToast('Génération du PDF...', 'info');
                 const pdf = await Utils.generatePDF(rapport.title, rapport.content);
                 
                 if (this.canUseSupabase()) {
@@ -549,10 +594,10 @@ class DataManager {
                     rapport.pdfGenerated = true;
                 }
                 
-                Utils.showToast(t('toast.report.pdf.generated'), 'success');
+                Utils.showToast('PDF généré avec succès', 'success');
             } catch (error) {
                 console.error('Erreur génération PDF:', error);
-                Utils.showToast(t('toast.report.pdf.error'), 'error');
+                Utils.showToast('Erreur lors de la génération du PDF', 'error');
             }
 
             data.rapports = data.rapports || [];
@@ -563,7 +608,7 @@ class DataManager {
             this.updateBrouillonsUI(data.brouillons);
             this.updateRapportsUI(data.rapports);
             
-            Utils.showToast(t('toast.draft.validated'), 'success');
+            Utils.showToast('Rapport validé avec succès', 'success');
             
             if (this.canUseSupabase()) {
                 try {
@@ -626,17 +671,39 @@ class DataManager {
     getFolders() {
         const data = this.loadAppData();
         return data.folders || [];
-    }async createFolder(folderName) {
+    }
+
+    async createFolder(folderName) {
         if (!folderName || !folderName.trim()) {
-            Utils.showToast(t('toast.folder.error.empty'), 'error');
+            Utils.showToast('Le nom du dossier ne peut pas être vide', 'error');
             return null;
         }
+
+        console.log('🔍 Vérification du plan pour création de dossier...');
+        
+        const userPlan = await Utils.checkUserPlan();
+        
+        console.log('📊 Plan utilisateur:', userPlan);
+        
+        if (userPlan !== 'pro') {
+            console.log('🚫 BLOCAGE - Plan FREE: Dossiers réservés au PRO');
+            
+            Utils.showUpgradeModal(
+                '📂 Dossiers réservés au plan PRO',
+                'Organisez vos rapports dans des <strong>dossiers illimités</strong> avec le plan PRO.',
+                'folders'
+            );
+            
+            return null;
+        }
+        
+        console.log('✅ Plan PRO confirmé - Création de dossier autorisée');
 
         const data = this.loadAppData();
         data.folders = data.folders || [];
 
         if (data.folders.find(f => f.name.toLowerCase() === folderName.toLowerCase())) {
-            Utils.showToast(t('toast.folder.error.exists'), 'error');
+            Utils.showToast('Un dossier avec ce nom existe déjà', 'error');
             return null;
         }
 
@@ -650,7 +717,7 @@ class DataManager {
         data.folders.push(folder);
         this.saveAppData(data);
         
-        Utils.showToast(t('toast.folder.created', { name: folderName }), 'success');
+        Utils.showToast(`Dossier "${folderName}" créé`, 'success');
         
         if (this.canUseSupabase()) {
             try {
@@ -674,10 +741,8 @@ class DataManager {
         }
         
         return folder;
-    }
-
-    async deleteFolder(folderId) {
-        if (!confirm(t('folder.delete.confirm'))) {
+    }async deleteFolder(folderId) {
+        if (!confirm('Êtes-vous sûr de vouloir supprimer ce dossier ? Les rapports seront déplacés vers "Aucun dossier".')) {
             return;
         }
 
@@ -700,7 +765,7 @@ class DataManager {
             this.updateRapportsUI(data.rapports);
         }
         
-        Utils.showToast(t('toast.folder.deleted'), 'success');
+        Utils.showToast('Dossier supprimé', 'success');
         
         if (this.canUseSupabase()) {
             try {
@@ -729,11 +794,11 @@ class DataManager {
 
     getReportsCountText(count) {
         if (count === 0) {
-            return window.t('folder.reports.count', { count: 0 });
+            return '0 rapport';
         } else if (count === 1) {
-            return window.t('folder.reports.count', { count: 1 });
+            return '1 rapport';
         } else {
-            return window.t('folder.reports.count.plural', { count: count });
+            return `${count} rapports`;
         }
     }
 
@@ -749,6 +814,7 @@ class DataManager {
         this.updateRapportsUI(data.rapports);
     }
 
+    // ✅ CORRECTION : renameFolder avec TEXTE EN DUR
     renameFolder(folderId) {
         const data = this.loadAppData();
         const folder = data.folders.find(f => f.id === folderId);
@@ -756,18 +822,37 @@ class DataManager {
         if (!folder) return;
 
         const modal = Utils.createModal(
-            t('modal.folder.rename.title'),
+            'Renommer le dossier',
             `
                 <label style="display: block; margin-bottom: 10px; font-weight: bold;">
-                    ${t('modal.folder.rename.label')}
+                    Nouveau nom :
                 </label>
-                <input type="text" id="folderNameInput" class="modal-input" value="${Utils.escapeHtml(folder.name)}" placeholder="${t('modal.folder.rename.placeholder')}">
+                <input type="text" id="folderNameInput" class="modal-input" value="${Utils.escapeHtml(folder.name)}" placeholder="Nom du dossier">
             `,
-            [
-                { text: t('modal.edit.cancel'), class: 'btn-secondary', onclick: 'this.closest("[data-modal]").remove()' },
-                { text: t('modal.edit.save'), class: 'btn-primary', onclick: `window.dataManager.saveFolderRename('${folderId}', this)` }
-            ]
+            []
         );
+        
+        const footer = modal.querySelector('.modal-footer');
+        footer.innerHTML = '';
+        
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn-secondary';
+        cancelBtn.textContent = 'Annuler'; // ✅ TEXTE EN DUR
+        cancelBtn.addEventListener('click', () => {
+            console.log('🔴 Renommage annulé');
+            modal.remove();
+        });
+        
+        const saveBtn = document.createElement('button');
+        saveBtn.className = 'btn-primary';
+        saveBtn.textContent = '💾 Sauvegarder'; // ✅ TEXTE EN DUR
+        saveBtn.addEventListener('click', () => {
+            console.log('✅ Renommage confirmé');
+            this.saveFolderRename(folderId, saveBtn);
+        });
+        
+        footer.appendChild(cancelBtn);
+        footer.appendChild(saveBtn);
     }
 
     async saveFolderRename(folderId, buttonElement) {
@@ -775,7 +860,7 @@ class DataManager {
         const newName = modal.querySelector('#folderNameInput').value.trim();
         
         if (!newName) {
-            Utils.showToast(t('toast.folder.error.empty'), 'error');
+            Utils.showToast('Le nom du dossier ne peut pas être vide', 'error');
             return;
         }
 
@@ -787,7 +872,7 @@ class DataManager {
             this.saveAppData(data);
             this.updateRapportsUI(data.rapports);
             modal.remove();
-            Utils.showToast(t('toast.folder.renamed'), 'success');
+            Utils.showToast('Dossier renommé', 'success');
             
             if (this.canUseSupabase()) {
                 try {
@@ -814,8 +899,8 @@ class DataManager {
             this.saveAppData(data);
             this.updateRapportsUI(data.rapports);
             
-            const folderName = newFolderId ? data.folders.find(f => f.id === newFolderId)?.name : t('folder.none');
-            Utils.showToast(t('toast.report.moved', { folder: folderName }), 'success');
+            const folderName = newFolderId ? data.folders.find(f => f.id === newFolderId)?.name : 'Aucun dossier';
+            Utils.showToast(`Rapport déplacé vers "${folderName}"`, 'success');
             
             if (this.canUseSupabase()) {
                 try {
@@ -833,25 +918,45 @@ class DataManager {
         }
     }
 
+    // ✅ CORRECTION : showCreateFolderModal avec TEXTE EN DUR
     showCreateFolderModal() {
         const modal = Utils.createModal(
-            t('modal.folder.create.title'),
+            'Créer un nouveau dossier',
             `
                 <label style="display: block; margin-bottom: 10px; font-weight: bold;">
-                    ${t('modal.folder.create.label')}
+                    Nom du dossier :
                 </label>
-                <input type="text" id="newFolderName" class="modal-input" placeholder="${t('modal.folder.create.placeholder')}" autofocus>
+                <input type="text" id="newFolderName" class="modal-input" placeholder="Ex: Clients 2024" autofocus>
             `,
-            [
-                { text: t('modal.edit.cancel'), class: 'btn-secondary', onclick: 'this.closest("[data-modal]").remove()' },
-                { text: t('modal.folder.create.button'), class: 'btn-primary', onclick: 'window.dataManager.handleCreateFolder(this)' }
-            ]
+            []
         );
+        
+        const footer = modal.querySelector('.modal-footer');
+        footer.innerHTML = '';
+        
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn-secondary';
+        cancelBtn.textContent = 'Annuler'; // ✅ TEXTE EN DUR
+        cancelBtn.addEventListener('click', () => {
+            console.log('🔴 Création de dossier annulée');
+            modal.remove();
+        });
+        
+        const createBtn = document.createElement('button');
+        createBtn.className = 'btn-primary';
+        createBtn.textContent = '✅ Créer'; // ✅ TEXTE EN DUR
+        createBtn.addEventListener('click', () => {
+            console.log('✅ Création de dossier confirmée');
+            this.handleCreateFolder(createBtn);
+        });
+        
+        footer.appendChild(cancelBtn);
+        footer.appendChild(createBtn);
 
         const input = modal.querySelector('#newFolderName');
         input.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
-                window.dataManager.handleCreateFolder(e.target);
+                this.handleCreateFolder(createBtn);
             }
         });
     }
@@ -867,13 +972,14 @@ class DataManager {
         }
     }
 
+    // ✅ CORRECTION : showMoveFolderModal avec TEXTE EN DUR
     showMoveFolderModal(rapportId) {
         const data = this.loadAppData();
         const folders = data.folders || [];
         const rapport = data.rapports.find(r => r.id === rapportId);
 
         const foldersOptions = [
-            `<option value="">${t('folder.none')}</option>`,
+            `<option value="">Aucun dossier</option>`,
             ...folders.map(folder => 
                 `<option value="${folder.id}" ${rapport.folderId === folder.id ? 'selected' : ''}>
                     📁 ${Utils.escapeHtml(folder.name)}
@@ -882,20 +988,39 @@ class DataManager {
         ].join('');
 
         const modal = Utils.createModal(
-            t('modal.move.title'),
+            'Déplacer le rapport',
             `
                 <label style="display: block; margin-bottom: 10px; font-weight: bold;">
-                    ${t('modal.move.label')}
+                    Choisir un dossier :
                 </label>
                 <select id="folderSelect" class="modal-input" style="cursor: pointer;">
                     ${foldersOptions}
                 </select>
             `,
-            [
-                { text: t('modal.edit.cancel'), class: 'btn-secondary', onclick: 'this.closest("[data-modal]").remove()' },
-                { text: t('modal.move.button'), class: 'btn-primary', onclick: `window.dataManager.handleMoveRapport('${rapportId}', this)` }
-            ]
+            []
         );
+        
+        const footer = modal.querySelector('.modal-footer');
+        footer.innerHTML = '';
+        
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn-secondary';
+        cancelBtn.textContent = 'Annuler'; // ✅ TEXTE EN DUR
+        cancelBtn.addEventListener('click', () => {
+            console.log('🔴 Déplacement annulé');
+            modal.remove();
+        });
+        
+        const moveBtn = document.createElement('button');
+        moveBtn.className = 'btn-primary';
+        moveBtn.textContent = '📂 Déplacer'; // ✅ TEXTE EN DUR
+        moveBtn.addEventListener('click', () => {
+            console.log('✅ Déplacement confirmé');
+            this.handleMoveRapport(rapportId, moveBtn);
+        });
+        
+        footer.appendChild(cancelBtn);
+        footer.appendChild(moveBtn);
     }
 
     handleMoveRapport(rapportId, buttonElement) {
@@ -915,7 +1040,7 @@ class DataManager {
         
         if (rapport.pdfUrl) {
             try {
-                Utils.showToast(t('toast.report.pdf.downloading'), 'info');
+                Utils.showToast('Téléchargement du PDF...', 'info');
                 
                 const link = document.createElement('a');
                 link.href = rapport.pdfUrl;
@@ -923,7 +1048,7 @@ class DataManager {
                 link.target = '_blank';
                 link.click();
                 
-                Utils.showToast(t('toast.report.pdf.downloaded'), 'success');
+                Utils.showToast('PDF téléchargé', 'success');
                 return;
             } catch (error) {
                 console.error('❌ Erreur téléchargement PDF:', error);
@@ -941,9 +1066,9 @@ class DataManager {
             
             const filename = `${rapport.title.replace(/[^a-z0-9]/gi, '_')}.pdf`;
             Utils.downloadFile(blob, filename);
-            Utils.showToast(t('toast.report.pdf.downloaded'), 'success');
+            Utils.showToast('PDF téléchargé', 'success');
         } else {
-            Utils.showToast(t('toast.report.pdf.unavailable'), 'error');
+            Utils.showToast('PDF non disponible', 'error');
         }
     }
 
@@ -958,10 +1083,10 @@ class DataManager {
                 if (navigator.share) {
                     await navigator.share({
                         title: rapport.title,
-                        text: `${t('new.report')}: ${rapport.title}`,
+                        text: `Nouveau rapport: ${rapport.title}`,
                         url: rapport.pdfUrl
                     });
-                    Utils.showToast(t('toast.report.shared'), 'success');
+                    Utils.showToast('Rapport partagé', 'success');
                     return;
                 } else {
                     await Utils.copyToClipboard(rapport.pdfUrl);
@@ -984,29 +1109,48 @@ class DataManager {
         if (!shared) {
             const copied = await Utils.copyToClipboard(shareText);
             if (copied) {
-                Utils.showToast(t('toast.report.share.copied'), 'success');
+                Utils.showToast('Rapport copié dans le presse-papier', 'success');
             } else {
-                Utils.showToast(t('toast.report.share.error'), 'error');
+                Utils.showToast('Erreur lors du partage', 'error');
             }
         }
-    }
-
-    translateRapport(rapportId) {
+    }// ✅ CORRECTION : translateRapport avec TEXTE EN DUR
+    async translateRapport(rapportId) {
         const data = this.loadAppData();
         const rapport = data.rapports.find(r => r.id === rapportId);
         
         if (!rapport) return;
+
+        console.log('🔍 Vérification du plan pour traduction...');
         
+        const userPlan = await Utils.checkUserPlan();
+        
+        console.log('📊 Plan utilisateur:', userPlan);
+        
+        if (userPlan !== 'pro') {
+            console.log('🚫 BLOCAGE - Plan FREE: Traduction réservée au PRO');
+            
+            Utils.showUpgradeModal(
+                '🌍 Traduction réservée au plan PRO',
+                'Traduisez instantanément vos rapports en <strong>6 langues</strong> :<br>🇫🇷 Français • 🇬🇧 Anglais • 🇨🇳 Chinois • 🇯🇵 Japonais • 🇪🇸 Espagnol • 🇩🇪 Allemand',
+                'translation'
+            );
+            
+            return;
+        }
+        
+        console.log('✅ Plan PRO confirmé - Traduction autorisée');
+
         let sourceRapport = rapport;
         if (rapport.isTranslation && rapport.originalReportId) {
             sourceRapport = data.rapports.find(r => r.id === rapport.originalReportId) || rapport;
         }
         
         const modal = Utils.createModal(
-            t('modal.translate.title'),
+            'Traduire le rapport',
             `
                 <div style="margin-bottom: 20px; padding: 15px; background: var(--gray-50); border-radius: 10px;">
-                    <p style="margin: 0 0 10px 0;"><strong>${t('modal.translate.original')}:</strong></p>
+                    <p style="margin: 0 0 10px 0;"><strong>Rapport original :</strong></p>
                     <p style="color: var(--gray-600); font-size: 14px; margin: 0; font-weight: 600;">
                         ${Utils.escapeHtml(sourceRapport.title)}
                     </p>
@@ -1016,7 +1160,7 @@ class DataManager {
                 </div>
                 
                 <label style="display: block; margin-bottom: 10px; font-weight: bold; color: var(--gray-800);">
-                    ${t('modal.translate.target')}
+                    Langue cible :
                 </label>
                 <select id="targetLanguage" class="modal-input" style="cursor: pointer;">
                     <option value="en">🇬🇧 English</option>
@@ -1029,19 +1173,34 @@ class DataManager {
                 
                 <div style="margin-top: 20px; padding: 15px; background: var(--primary-ultra-light); border-radius: 10px; border-left: 4px solid var(--primary);">
                     <p style="font-size: 13px; color: var(--gray-700); margin: 0; line-height: 1.6;">
-                        <strong>ℹ️ Note:</strong> ${t('modal.translate.note')}
+                        <strong>ℹ️ Note:</strong> La traduction sera créée comme un nouveau rapport distinct.
                     </p>
                 </div>
             `,
-            [
-                { text: t('modal.edit.cancel'), class: 'btn-secondary', onclick: 'this.closest("[data-modal]").remove()' },
-                { 
-                    text: `🌐 ${t('modal.translate.button')}`, 
-                    class: 'btn-primary', 
-                    onclick: `window.dataManager.processTranslation('${sourceRapport.id}', this)` 
-                }
-            ]
+            []
         );
+        
+        const footer = modal.querySelector('.modal-footer');
+        footer.innerHTML = '';
+        
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn-secondary';
+        cancelBtn.textContent = 'Annuler'; // ✅ TEXTE EN DUR
+        cancelBtn.addEventListener('click', () => {
+            console.log('🔴 Traduction annulée');
+            modal.remove();
+        });
+        
+        const translateBtn = document.createElement('button');
+        translateBtn.className = 'btn-primary';
+        translateBtn.textContent = '🌐 Traduire'; // ✅ TEXTE EN DUR
+        translateBtn.addEventListener('click', () => {
+            console.log('✅ Traduction confirmée');
+            this.processTranslation(sourceRapport.id, translateBtn);
+        });
+        
+        footer.appendChild(cancelBtn);
+        footer.appendChild(translateBtn);
     }
 
     async processTranslation(rapportId, buttonElement) {
@@ -1049,7 +1208,7 @@ class DataManager {
         const targetLang = modal.querySelector('#targetLanguage').value;
         
         buttonElement.disabled = true;
-        buttonElement.innerHTML = '<div class="loading-spinner" style="display: inline-block; width: 16px; height: 16px; margin-right: 8px;"></div> ' + t('toast.translate.processing');
+        buttonElement.innerHTML = '<div class="loading-spinner" style="display: inline-block; width: 16px; height: 16px; margin-right: 8px;"></div> Traduction en cours...';
         
         const data = this.loadAppData();
         const rapport = data.rapports.find(r => r.id === rapportId);
@@ -1108,7 +1267,7 @@ class DataManager {
             modal.remove();
             
             try {
-                Utils.showToast(t('toast.report.pdf.generating'), 'info', 2000);
+                Utils.showToast('Génération du PDF...', 'info', 2000);
                 const pdf = await Utils.generatePDF(translatedRapport.title, translatedRapport.content);
                 
                 if (this.canUseSupabase()) {
@@ -1140,7 +1299,7 @@ class DataManager {
             this.updateRapportsUI(data.rapports);
             
             const langName = this.getLanguageName(targetLang);
-            Utils.showToast(t('toast.translate.success', { lang: langName }), 'success');
+            Utils.showToast(`Rapport traduit en ${langName}`, 'success');
             
             if (this.canUseSupabase()) {
                 try {
@@ -1161,7 +1320,7 @@ class DataManager {
         } catch (error) {
             console.error('Erreur traduction:', error);
             modal.remove();
-            Utils.showToast(t('toast.translate.error') + ': ' + error.message, 'error');
+            Utils.showToast('Erreur lors de la traduction: ' + error.message, 'error');
         }
     }
 
@@ -1178,51 +1337,92 @@ class DataManager {
         return languages[code] || code.toUpperCase();
     }
 
+    // ✅ CORRECTION : viewRapport avec TEXTE EN DUR
     viewRapport(rapportId) {
         const data = this.loadAppData();
         const rapport = data.rapports.find(r => r.id === rapportId);
         
         if (!rapport) return;
         
-        if (rapport.isTranslation && rapport.originalReportId) {
-            const original = data.rapports.find(r => r.id === rapport.originalReportId);
-            
-            if (original) {
-                this.viewComparison(original, rapport);
-                return;
-            }
-        }
-        
         const validatedDate = Utils.formatDate(rapport.validatedAt);
-        const modifiedWarning = rapport.isModified ? `<br><em>${t('modal.view.modified')}</em>` : '';
-        const pdfAvailable = rapport.hasPdf ? `<br><strong>${t('modal.view.pdf.available')}</strong>` : '';
+        const modifiedWarning = rapport.isModified ? `<br><em>⚠️ Rapport modifié après génération</em>` : '';
+        const pdfAvailable = rapport.hasPdf ? `<br><strong>📄 PDF disponible</strong>` : '';
+        
+        let translationInfo = '';
+        if (rapport.isTranslation) {
+            translationInfo = `
+                <div style="
+                    background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(124, 58, 237, 0.05));
+                    padding: 12px;
+                    border-radius: 8px;
+                    margin-bottom: 15px;
+                    border-left: 3px solid #8b5cf6;
+                ">
+                    <strong>🌐 Traduction</strong> : ${this.getLanguageName(rapport.translatedTo)}
+                    ${rapport.originalReportId ? `<br><small>Rapport original disponible</small>` : ''}
+                </div>
+            `;
+        }
         
         const modal = Utils.createModal(
             `📋 ${rapport.title}`,
             `
                 <div style="background: #f8f9fa; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; color: #666;">
-                    <strong>${t('date.validated')}:</strong> ${validatedDate}
+                    <strong>Validé le :</strong> ${validatedDate}
                     ${modifiedWarning}
                     ${pdfAvailable}
                 </div>
+                ${translationInfo}
                 <div style="line-height: 1.6; font-size: 15px; white-space: pre-wrap;">
                     ${Utils.escapeHtml(rapport.content)}
                 </div>
             `,
             []
         );
+        
+        const footer = modal.querySelector('.modal-footer');
+        footer.innerHTML = '';
+        
+        if (rapport.isTranslation && rapport.originalReportId) {
+            const original = data.rapports.find(r => r.id === rapport.originalReportId);
+            if (original) {
+                const compareBtn = document.createElement('button');
+                compareBtn.className = 'btn-primary';
+                compareBtn.textContent = '🔄 Comparer avec l\'original'; // ✅ TEXTE EN DUR
+                compareBtn.addEventListener('click', () => {
+                    modal.remove();
+                    this.viewComparison(original.id, rapport.id);
+                });
+                footer.appendChild(compareBtn);
+            }
+        }
+        
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'btn-secondary';
+        closeBtn.textContent = 'Fermer'; // ✅ TEXTE EN DUR
+        closeBtn.addEventListener('click', () => {
+            modal.remove();
+        });
+        footer.appendChild(closeBtn);
     }
 
-    viewComparison(original, translated) {
+    // ✅ CORRECTION : viewComparison avec TEXTE EN DUR
+    viewComparison(originalId, translatedId) {
+        const data = this.loadAppData();
+        const original = data.rapports.find(r => r.id === originalId);
+        const translated = data.rapports.find(r => r.id === translatedId);
+        
+        if (!original || !translated) return;
+        
         const modal = Utils.createModal(
-            `🌐 ${t('modal.translate.title')} - ${translated.title}`,
+            `🌐 Traduction - ${translated.title}`,
             `
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-height: 70vh; overflow: hidden;">
                     
                     <div style="border-right: 2px solid var(--gray-200); padding-right: 20px; overflow-y: auto;">
                         <div style="background: var(--gray-100); padding: 12px; border-radius: 10px; margin-bottom: 15px; position: sticky; top: 0; z-index: 1;">
                             <h4 style="margin: 0; color: var(--gray-800); font-size: 14px;">
-                                📄 ${t('modal.translate.original')}
+                                📄 Rapport original
                                 <span style="background: var(--gray-500); color: white; padding: 2px 8px; border-radius: 6px; font-size: 11px; margin-left: 8px;">
                                     ${this.getLanguageName(original.detectedLanguage || translated.detectedLanguage)}
                                 </span>
@@ -1237,7 +1437,7 @@ class DataManager {
                     <div style="overflow-y: auto;">
                         <div style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(124, 58, 237, 0.05)); padding: 12px; border-radius: 10px; margin-bottom: 15px; position: sticky; top: 0; z-index: 1;">
                             <h4 style="margin: 0; color: #7c3aed; font-size: 14px;">
-                                🌐 ${t('report.translated.badge')}
+                                🌐 Traduction
                                 <span style="background: #8b5cf6; color: white; padding: 2px 8px; border-radius: 6px; font-size: 11px; margin-left: 8px;">
                                     ${this.getLanguageName(translated.translatedTo)}
                                 </span>
@@ -1251,19 +1451,30 @@ class DataManager {
                     
                 </div>
             `,
-            [
-                { 
-                    text: `📄 PDF Original`, 
-                    class: 'btn-secondary', 
-                    onclick: `window.dataManager.downloadPDF('${original.id}'); this.closest("[data-modal]").remove();` 
-                },
-                { 
-                    text: `📄 PDF Traduit`, 
-                    class: 'btn-primary', 
-                    onclick: `window.dataManager.downloadPDF('${translated.id}'); this.closest("[data-modal]").remove();` 
-                }
-            ]
+            []
         );
+        
+        const footer = modal.querySelector('.modal-footer');
+        footer.innerHTML = '';
+        
+        const pdfOriginalBtn = document.createElement('button');
+        pdfOriginalBtn.className = 'btn-secondary';
+        pdfOriginalBtn.textContent = '📄 PDF Original'; // ✅ TEXTE EN DUR
+        pdfOriginalBtn.addEventListener('click', () => {
+            this.downloadPDF(original.id);
+            modal.remove();
+        });
+        
+        const pdfTranslatedBtn = document.createElement('button');
+        pdfTranslatedBtn.className = 'btn-primary';
+        pdfTranslatedBtn.textContent = '📄 PDF Traduit'; // ✅ TEXTE EN DUR
+        pdfTranslatedBtn.addEventListener('click', () => {
+            this.downloadPDF(translated.id);
+            modal.remove();
+        });
+        
+        footer.appendChild(pdfOriginalBtn);
+        footer.appendChild(pdfTranslatedBtn);
     }
 
     loadBrouillonsData() {
@@ -1277,7 +1488,7 @@ class DataManager {
     }
 
     extractTitleFromContent(content) {
-        if (!content) return t('report.title.default');
+        if (!content) return 'Rapport sans titre';
         
         const patterns = [
             /titre\s*[:=]\s*([^\n\r]+)/i,
@@ -1293,7 +1504,7 @@ class DataManager {
             }
         }
         
-        return t('report.title.default');
+        return 'Rapport sans titre';
     }
 
     filterRapports(searchTerm) {
@@ -1315,9 +1526,7 @@ class DataManager {
 
     exportRapport(id) {
         this.downloadPDF(id);
-    }
-
-    // === AFFICHAGE DES BROUILLONS ===
+    }// === AFFICHAGE DES BROUILLONS ===
     
     updateBrouillonsUI(brouillons) {
         const container = document.getElementById('brouillonsList');
@@ -1327,8 +1536,8 @@ class DataManager {
             container.innerHTML = `
                 <div class="empty-state">
                     <div class="icon">📄</div>
-                    <p>${t('drafts.empty')}</p>
-                    <p class="empty-subtitle">${t('drafts.empty.subtitle')}</p>
+                    <p>Aucun brouillon</p>
+                    <p class="empty-subtitle">Enregistrez un message vocal pour créer votre premier rapport</p>
                 </div>
             `;
             return;
@@ -1347,29 +1556,29 @@ class DataManager {
                 statusIcon = '⚠️';
             }
 
-            const content = brouillon.generatedReport || t('status.generating');
+            const content = brouillon.generatedReport || '⏳ Génération en cours...';
             const truncatedContent = Utils.truncateText(content, 100);
             const sourceIndicator = brouillon.sourceType === 'upload' ? '📁' : '🎤';
 
             return `
                 <div class="report-item ${statusClass}">
                     <div class="report-header">
-                        <div class="report-title">${statusIcon} ${sourceIndicator} ${Utils.escapeHtml(brouillon.title || t('new.report'))}</div>
+                        <div class="report-title">${statusIcon} ${sourceIndicator} ${Utils.escapeHtml(brouillon.title || 'Nouveau rapport')}</div>
                         <div class="report-date">${date}</div>
                     </div>
                     <div class="report-content">${Utils.escapeHtml(truncatedContent)}</div>
                     <div class="report-actions">
                         ${brouillon.status === 'ready' ? `
-                            <button class="action-btn edit-btn" onclick="window.dataManager.editBrouillon('${brouillon.id}')">${t('drafts.action.edit')}</button>
-                            <button class="action-btn validate-btn" onclick="window.dataManager.validateBrouillon('${brouillon.id}')">${t('drafts.action.validate')}</button>
+                            <button class="action-btn edit-btn" onclick="window.dataManager.editBrouillon('${brouillon.id}')">✏️ Éditer</button>
+                            <button class="action-btn validate-btn" onclick="window.dataManager.validateBrouillon('${brouillon.id}')">✅ Valider</button>
                         ` : ''}
                         ${brouillon.status === 'generating' ? `
                             <div class="loading-spinner"></div>
                         ` : ''}
                         ${brouillon.status === 'error' ? `
-                            <button class="action-btn edit-btn" disabled>${t('drafts.action.audio.unavailable')}</button>
+                            <button class="action-btn edit-btn" disabled>🔄 Audio non disponible</button>
                         ` : ''}
-                        <button class="action-btn delete-btn" onclick="window.dataManager.deleteBrouillon('${brouillon.id}')">${t('drafts.action.delete')}</button>
+                        <button class="action-btn delete-btn" onclick="window.dataManager.deleteBrouillon('${brouillon.id}')">🗑️ Supprimer</button>
                     </div>
                 </div>
             `;
@@ -1398,8 +1607,8 @@ class DataManager {
             container.innerHTML = `
                 <div class="empty-state">
                     <div class="icon">📋</div>
-                    <p>${t('reports.empty')}</p>
-                    <p class="empty-subtitle">${t('reports.empty.subtitle')}</p>
+                    <p>Aucun rapport validé</p>
+                    <p class="empty-subtitle">Validez vos brouillons pour créer vos premiers rapports</p>
                 </div>
             `;
             return;
@@ -1418,7 +1627,7 @@ class DataManager {
                         class="breadcrumb-back-btn"
                         onclick="window.dataManager.closeFolder()"
                     >
-                        ← ${t('reports.action.back') || 'Retour'}
+                        ← Retour
                     </button>
                     
                     <span class="breadcrumb-separator">›</span>
@@ -1435,10 +1644,10 @@ class DataManager {
                     
                     <div class="breadcrumb-actions" onclick="event.stopPropagation();">
                         <button class="action-btn" style="background: var(--warning); color: white;" onclick="window.dataManager.renameFolder('${this.currentFolderId}')">
-                            ✏️ ${t('folder.action.rename')}
+                            ✏️ Renommer
                         </button>
                         <button class="action-btn" style="background: var(--error); color: white;" onclick="window.dataManager.deleteFolder('${this.currentFolderId}')">
-                            🗑️ ${t('folder.action.delete')}
+                            🗑️ Supprimer
                         </button>
                     </div>
                 </div>
@@ -1447,7 +1656,7 @@ class DataManager {
                     ${folderRapports.length > 0 ? folderRapports.map(rapport => this.renderRapportCard(rapport)).join('') : `
                         <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--gray-500);">
                             <div style="font-size: 64px; margin-bottom: 20px; opacity: 0.5;">📭</div>
-                            <p style="font-size: 18px; font-weight: 600;">${t('folder.empty')}</p>
+                            <p style="font-size: 18px; font-weight: 600;">Ce dossier est vide</p>
                         </div>
                     `}
                 </div>
@@ -1463,7 +1672,7 @@ class DataManager {
             html += `
                 <div style="margin-bottom: 40px;">
                     <h3 class="reports-section-title">
-                        📁 ${t('reports.folders') || 'Dossiers'}
+                        📁 Dossiers
                         <span class="count-badge">${folders.length}</span>
                     </h3>
                     
@@ -1504,7 +1713,7 @@ class DataManager {
             html += `
                 <div>
                     <h3 class="reports-section-title">
-                        📄 ${t('folder.none')}
+                        📄 Aucun dossier
                         <span class="count-badge">${rapportsSansDossier.length}</span>
                     </h3>
                     
@@ -1565,7 +1774,7 @@ class DataManager {
                         ${sourceIcon} ${pdfIndicator} ${Utils.escapeHtml(rapport.title)}
                         ${translationBadge}
                     </div>
-                    <div class="report-date">${t('reports.validated.on')} ${dateValidated}</div>
+                    <div class="report-date">Validé le ${dateValidated}</div>
                 </div>
                 
                 <div class="report-content">${Utils.escapeHtml(truncatedContent)}</div>

@@ -62,60 +62,101 @@ class Utils {
         });
     }
 
-    // Crée une modal avec animations
+    // ✅ CORRECTION COMPLÈTE : createModal() avec footer TOUJOURS créé
     static createModal(title, content, buttons = []) {
-        const modal = document.createElement('div');
-        modal.className = 'modal-overlay';
-        modal.setAttribute('data-modal', 'true');
-        modal.style.opacity = '0';
+        // Créer l'overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        overlay.setAttribute('data-modal', 'true');
+        overlay.style.opacity = '0';
+
+        // Créer le conteneur du modal
+        const modalContent = document.createElement('div');
+        modalContent.className = 'modal-content';
+
+        // ✅ HEADER
+        const header = document.createElement('div');
+        header.className = 'modal-header';
         
-        const buttonsHtml = buttons.map(btn => 
-            `<button class="${btn.class || 'btn-secondary'}" onclick="${btn.onclick || ''}">${btn.text}</button>`
-        ).join('');
+        const titleElement = document.createElement('h3');
+        titleElement.textContent = title;
         
-        modal.innerHTML = `
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>${title}</h3>
-                    <button class="modal-close" onclick="this.closest('[data-modal]').remove()">×</button>
-                </div>
-                <div class="modal-body">
-                    ${content}
-                </div>
-                ${buttons.length > 0 ? `
-                <div class="modal-footer">
-                    ${buttonsHtml}
-                </div>
-                ` : ''}
-            </div>
-        `;
-        
-        document.body.appendChild(modal);
-        requestAnimationFrame(() => {
-            modal.style.opacity = '1';
+        const closeButton = document.createElement('button');
+        closeButton.className = 'modal-close';
+        closeButton.innerHTML = '×';
+        closeButton.addEventListener('click', () => {
+            Utils.closeModal(overlay);
         });
         
+        header.appendChild(titleElement);
+        header.appendChild(closeButton);
+
+        // ✅ BODY
+        const body = document.createElement('div');
+        body.className = 'modal-body';
+        body.innerHTML = content;
+
+        // ✅ FOOTER (TOUJOURS créé, même si vide)
+        const footer = document.createElement('div');
+        footer.className = 'modal-footer';
+
+        // ✅ Si des boutons sont fournis (ancien système avec onclick string)
+        if (buttons && buttons.length > 0) {
+            buttons.forEach(btn => {
+                const button = document.createElement('button');
+                button.className = btn.class || 'btn-secondary';
+                button.textContent = btn.text;
+                
+                if (btn.onclick) {
+                    if (typeof btn.onclick === 'string') {
+                        // Ancien système : onclick en string
+                        button.setAttribute('onclick', btn.onclick);
+                    } else if (typeof btn.onclick === 'function') {
+                        // Nouveau système : vraie fonction
+                        button.addEventListener('click', btn.onclick);
+                    }
+                }
+                
+                footer.appendChild(button);
+            });
+        }
+
+        // ✅ ASSEMBLAGE
+        modalContent.appendChild(header);
+        modalContent.appendChild(body);
+        modalContent.appendChild(footer); // ✅ TOUJOURS ajouter le footer
+        overlay.appendChild(modalContent);
+
+        // ✅ Fermer en cliquant sur l'overlay
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                Utils.closeModal(overlay);
+            }
+        });
+
+        // ✅ Fermer avec la touche Escape
         const handleEscape = (e) => {
             if (e.key === 'Escape') {
-                Utils.closeModal(modal);
+                Utils.closeModal(overlay);
                 document.removeEventListener('keydown', handleEscape);
             }
         };
         document.addEventListener('keydown', handleEscape);
-        
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                Utils.closeModal(modal);
-            }
+
+        // ✅ Ajouter au DOM
+        document.body.appendChild(overlay);
+
+        // ✅ Animation d'entrée
+        requestAnimationFrame(() => {
+            overlay.style.opacity = '1';
         });
-        
-        return modal;
+
+        return overlay;
     }
 
     // Ferme une modal avec animation
     static closeModal(modal) {
         modal.style.opacity = '0';
-        modal.style.transform = 'scale(0.95)';
         setTimeout(() => {
             if (modal && modal.parentNode) {
                 modal.remove();
@@ -358,9 +399,7 @@ class Utils {
             info: 'ℹ️'
         };
         return icons[type] || icons.info;
-    }
-
-    // Skeleton loading pour les listes
+    }// Skeleton loading pour les listes
     static showSkeletonLoading(container, count = 3) {
         const skeletons = Array.from({ length: count }, (_, i) => `
             <div class="report-item skeleton-item" style="animation-delay: ${i * 0.1}s">
@@ -597,5 +636,137 @@ class Utils {
                 await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, attempt - 1)));
             }
         }
+    }
+
+    // ============================================
+    // 🚀 NOUVELLES FONCTIONS POUR RESTRICTIONS FREE/PRO
+    // ============================================
+
+    /**
+     * Vérifie le plan de l'utilisateur actuel
+     * @returns {Promise<string>} 'free' ou 'pro'
+     */
+    static async checkUserPlan() {
+        const currentUser = window.appManager?.getCurrentUser();
+        if (!currentUser || !currentUser.id) {
+            return 'free';
+        }
+        
+        try {
+            const { data: profile, error } = await window.supabaseClient
+                .from('profiles')
+                .select('subscription_plan')
+                .eq('id', currentUser.id)
+                .single();
+            
+            if (error) throw error;
+            return profile.subscription_plan || 'free';
+        } catch (error) {
+            console.error('❌ Erreur vérification plan:', error);
+            return 'free';
+        }
+    }
+    
+    /**
+     * Vérifie si l'utilisateur FREE a atteint sa limite de rapports
+     * @returns {Promise<Object>} { canCreate: boolean, count: number, limit: number, isPro: boolean }
+     */
+    static async checkReportsLimit() {
+        const currentUser = window.appManager?.getCurrentUser();
+        if (!currentUser || !currentUser.id) {
+            return { canCreate: false, count: 0, limit: 5, isPro: false };
+        }
+        
+        try {
+            const { data: profile, error } = await window.supabaseClient
+                .from('profiles')
+                .select('subscription_plan, reports_this_month')
+                .eq('id', currentUser.id)
+                .single();
+            
+            if (error) throw error;
+            
+            const isPro = profile.subscription_plan === 'pro';
+            const count = profile.reports_this_month || 0;
+            const limit = isPro ? Infinity : 5;
+            const canCreate = isPro || count < 5;
+            
+            return { canCreate, count, limit, isPro };
+        } catch (error) {
+            console.error('❌ Erreur vérification limite:', error);
+            return { canCreate: true, count: 0, limit: 5, isPro: false };
+        }
+    }
+    
+    /**
+     * Affiche la modal d'upgrade avec message personnalisé
+     * @param {string} title - Titre de la modal
+     * @param {string} description - Description du feature bloqué
+     * @param {string} feature - Nom du feature pour tracking
+     */
+    static showUpgradeModal(title, description, feature) {
+        const modal = Utils.createModal(
+            title,
+            `<div style="text-align: center; padding: 20px;">
+                <div style="font-size: 64px; margin-bottom: 20px;">🚀</div>
+                <h3 style="color: var(--primary); margin-bottom: 15px; font-size: 20px;">
+                    ${title}
+                </h3>
+                <p style="font-size: 16px; color: var(--gray-700); margin-bottom: 30px; line-height: 1.6;">
+                    ${description}
+                </p>
+                
+                <div style="background: linear-gradient(135deg, rgba(139, 21, 56, 0.1), rgba(255, 111, 0, 0.1)); padding: 25px; border-radius: 15px; margin-bottom: 25px;">
+                    <h4 style="color: var(--primary); margin-bottom: 15px; font-size: 18px;">
+                        ✨ Plan PRO - 14,99€/mois
+                    </h4>
+                    <ul style="text-align: left; list-style: none; padding: 0; margin: 0;">
+                        <li style="padding: 8px 0; color: var(--gray-800);">
+                            <strong>✅ Rapports illimités</strong> - Créez autant de rapports que vous voulez
+                        </li>
+                        <li style="padding: 8px 0; color: var(--gray-800);">
+                            <strong>✅ Traduction 6 langues</strong> - FR, EN, CN, JA, ES, DE
+                        </li>
+                        <li style="padding: 8px 0; color: var(--gray-800);">
+                            <strong>✅ Dossiers illimités</strong> - Organisez vos rapports
+                        </li>
+                        <li style="padding: 8px 0; color: var(--gray-800);">
+                            <strong>✅ Support prioritaire 24/7</strong>
+                        </li>
+                    </ul>
+                </div>
+                
+                <p style="font-size: 12px; color: var(--gray-500); margin-top: 20px;">
+                    🔒 Paiement sécurisé par Stripe • Annulation à tout moment
+                </p>
+            </div>`,
+            [] // ✅ Pas de boutons en config
+        );
+        
+        // ✅ CORRECTION : Créer les boutons manuellement
+        const footer = modal.querySelector('.modal-footer');
+        footer.innerHTML = '';
+        
+        const laterBtn = document.createElement('button');
+        laterBtn.className = 'btn-secondary';
+        laterBtn.textContent = 'Plus tard';
+        laterBtn.addEventListener('click', () => {
+            modal.remove();
+        });
+        
+        const upgradeBtn = document.createElement('button');
+        upgradeBtn.className = 'btn-primary';
+        upgradeBtn.textContent = '🚀 Passer au PRO maintenant';
+        upgradeBtn.addEventListener('click', () => {
+            if (window.appManager?.profileManager) {
+                window.appManager.profileManager.handleUpgrade();
+            }
+            modal.remove();
+        });
+        
+        footer.appendChild(laterBtn);
+        footer.appendChild(upgradeBtn);
+        
+        console.log(`📊 Feature bloqué: ${feature}`);
     }
 }

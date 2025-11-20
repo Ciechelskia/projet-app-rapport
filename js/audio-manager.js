@@ -7,6 +7,7 @@ class AudioManager {
         this.recordedBlob = null;
         this.audioChunks = [];
         this.uploadedFile = null;
+        this.currentAudio = null; // ✅ AJOUT : Stocker l'instance audio en cours de lecture
         
         this.initializeElements();
         this.bindEvents();
@@ -139,25 +140,59 @@ class AudioManager {
         }
     }
 
+    // ✅ CORRECTION : Gestion de l'instance audio pour éviter les doubles lectures
     playRecording() {
+        // ✅ ÉTAPE 1 : Arrêter l'audio précédent s'il existe
+        if (this.currentAudio) {
+            console.log('⏹️ Arrêt de l\'audio en cours');
+            this.currentAudio.pause();
+            this.currentAudio.currentTime = 0;
+            this.currentAudio = null;
+        }
+
         const audioToPlay = this.uploadedFile || this.recordedBlob;
         
         if (audioToPlay) {
             const audioUrl = URL.createObjectURL(audioToPlay);
-            const audio = new Audio(audioUrl);
+            this.currentAudio = new Audio(audioUrl); // ✅ ÉTAPE 2 : Stocker la nouvelle instance
             
-            audio.play().catch(error => {
+            console.log('▶️ Lecture audio démarrée');
+            
+            this.currentAudio.play().catch(error => {
                 console.error('Erreur lecture audio:', error);
                 Utils.showToast(t('toast.audio.error.mic'), 'error');
+                this.currentAudio = null;
             });
             
-            audio.addEventListener('ended', () => {
+            // ✅ ÉTAPE 3 : Nettoyer après la fin de la lecture
+            this.currentAudio.addEventListener('ended', () => {
+                console.log('✅ Lecture audio terminée');
                 URL.revokeObjectURL(audioUrl);
+                this.currentAudio = null;
+            });
+
+            // ✅ ÉTAPE 4 : Nettoyer en cas d'erreur
+            this.currentAudio.addEventListener('error', (e) => {
+                console.error('❌ Erreur audio:', e);
+                URL.revokeObjectURL(audioUrl);
+                this.currentAudio = null;
             });
         }
     }
 
+    // ✅ CORRECTION : Arrêter l'audio lors de l'annulation
     resetRecording() {
+        console.log('🔄 Reset de l\'enregistrement');
+        
+        // ✅ ÉTAPE 1 : Arrêter l'audio en cours de lecture
+        if (this.currentAudio) {
+            console.log('⏹️ Arrêt de l\'audio en cours lors du reset');
+            this.currentAudio.pause();
+            this.currentAudio.currentTime = 0;
+            this.currentAudio = null;
+        }
+
+        // ✅ ÉTAPE 2 : Nettoyer les données d'enregistrement
         this.recordedBlob = null;
         this.uploadedFile = null;
         this.isRecording = false;
@@ -183,6 +218,8 @@ class AudioManager {
         if (this.sendAudioBtn) {
             this.sendAudioBtn.classList.remove('show');
         }
+        
+        console.log('✅ Reset terminé');
     }
 
     // === UPLOAD DE FICHIERS ===
@@ -244,6 +281,35 @@ class AudioManager {
             Utils.showToast(t('toast.audio.none'), 'error');
             return;
         }
+
+        // ============================================
+        // 🚀 NOUVELLE VÉRIFICATION : LIMITE FREE
+        // ============================================
+        
+        console.log('🔍 Vérification de la limite de rapports...');
+        
+        const limitCheck = await Utils.checkReportsLimit();
+        
+        console.log('📊 Résultat vérification:', limitCheck);
+        
+        if (!limitCheck.canCreate) {
+            console.log('🚫 LIMITE ATTEINTE - Plan FREE: ' + limitCheck.count + '/5');
+            
+            Utils.showUpgradeModal(
+                '🚫 Limite mensuelle atteinte !',
+                `Vous avez utilisé vos <strong>${limitCheck.limit} rapports gratuits</strong> ce mois-ci.<br><br>
+                Passez au plan <strong>PRO</strong> pour créer des rapports illimités !`,
+                'report_creation'
+            );
+            
+            return; // ⛔ BLOQUER L'ENVOI
+        }
+        
+        console.log('✅ Limite OK - Envoi autorisé (' + limitCheck.count + '/' + (limitCheck.isPro ? '∞' : '5') + ')');
+
+        // ============================================
+        // Continuer normalement si limite OK
+        // ============================================
 
         if (this.sendAudioBtn) {
             this.sendAudioBtn.disabled = true;

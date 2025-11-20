@@ -1,47 +1,46 @@
-// Gestionnaire de profil utilisateur pour VOCALIA - Version finale avec traductions
-class ProfileManager {
-    constructor() {
-        this.currentUser = null;
-        this.supabase = window.supabaseClient;
-    }
+// ============================================
+// PROFILE MANAGER - GESTION DU PROFIL UTILISATEUR
+// VERSION AVEC DEBUG MAXIMUM POUR ERREUR 400
+// ============================================
 
-    // Fonction helper pour traduire
-    translate(key) {
-        return window.languageManager ? window.languageManager.translate(key) : key;
+class ProfileManager {
+    constructor(appManager) {
+        this.appManager = appManager;
+        this.currentProfile = null;
     }
 
     // === CHARGEMENT DU PROFIL ===
+    
     async loadProfile(userId) {
-        try {
-            console.log('🔄 Chargement du profil pour:', userId);
+        if (!userId || !window.supabaseClient) {
+            console.warn('⚠️ Impossible de charger le profil');
+            return null;
+        }
 
-            const { data, error } = await this.supabase
+        try {
+            const { data: profile, error } = await window.supabaseClient
                 .from('profiles')
                 .select('*')
                 .eq('id', userId)
                 .single();
 
-            if (error) {
-                console.error('❌ Erreur chargement profil:', error);
-                Utils.showToast('Erreur lors du chargement du profil', 'error');
-                return null;
-            }
+            if (error) throw error;
 
-            console.log('✅ Profil chargé:', data);
-            this.currentUser = data;
-            this.updateProfileUI(data);
-            return data;
+            this.currentProfile = profile;
+            this.updateProfileUI(profile);
+            
+            console.log('✅ Profil chargé:', profile);
+            return profile;
 
         } catch (error) {
-            console.error('❌ Exception loadProfile:', error);
+            console.error('❌ Erreur chargement profil:', error);
             return null;
         }
     }
 
-    // === MISE À JOUR DE L'INTERFACE ===
+    // === MISE À JOUR DE L'INTERFACE PROFIL ===
+    
     updateProfileUI(profile) {
-        console.log('🎨 Mise à jour UI profil:', profile);
-        
         // Informations personnelles
         const firstNameInput = document.getElementById('profileFirstName');
         const lastNameInput = document.getElementById('profileLastName');
@@ -59,295 +58,192 @@ class ProfileManager {
             planBadge.className = isPro ? 'plan-badge pro' : 'plan-badge free';
         }
 
-        // ✅ Afficher les détails de l'abonnement avec traductions
+        // Date d'inscription
         const planDate = document.getElementById('planDate');
         if (planDate && profile.created_at) {
             const createdDate = new Date(profile.created_at);
-            const monthNames = [
-                this.translate('month.january'), this.translate('month.february'),
-                this.translate('month.march'), this.translate('month.april'),
-                this.translate('month.may'), this.translate('month.june'),
-                this.translate('month.july'), this.translate('month.august'),
-                this.translate('month.september'), this.translate('month.october'),
-                this.translate('month.november'), this.translate('month.december')
-            ];
-            
-            const formattedDate = `${monthNames[createdDate.getMonth()]} ${createdDate.getFullYear()}`;
-            
-            if (profile.subscription_plan === 'pro') {
-                let statusHTML = `<div style="margin-top: 15px;">`;
-                
-                // Date de début
-                const memberSinceText = this.translate('profile.member.since');
-                statusHTML += `
-                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                        <span style="font-size: 20px;">📅</span>
-                        <div>
-                            <div style="font-weight: 600; color: var(--gray-900); font-size: 14px;">${memberSinceText}</div>
-                            <div style="color: var(--gray-600); font-size: 13px;">${formattedDate}</div>
-                        </div>
-                    </div>
-                `;
-                
-                // Statut de l'abonnement
-                if (profile.subscription_status === 'canceling' && profile.subscription_end_date) {
-                    // Abonnement en cours d'annulation
-                    const endDate = new Date(profile.subscription_end_date);
-                    const endMonthName = monthNames[endDate.getMonth()];
-                    const formattedEndDate = `${endDate.getDate()} ${endMonthName} ${endDate.getFullYear()}`;
-                    
-                    const cancelScheduledText = this.translate('profile.cancellation.scheduled');
-                    const cancelDateText = this.translate('profile.cancellation.date');
-                    const keepAccessText = this.translate('profile.cancellation.keep.access');
-                    
-                    statusHTML += `
-                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding: 12px; background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.05)); border-radius: 10px; border-left: 3px solid #EF4444;">
-                            <span style="font-size: 20px;">⚠️</span>
-                            <div>
-                                <div style="font-weight: 700; color: #DC2626; font-size: 14px;">${cancelScheduledText}</div>
-                                <div style="color: var(--gray-700); font-size: 13px; margin-top: 3px;">
-                                    ${cancelDateText} <strong>${formattedEndDate}</strong>
-                                </div>
-                                <div style="color: var(--gray-600); font-size: 12px; margin-top: 5px;">
-                                    ${keepAccessText}
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    // Abonnement actif
-                    const startDate = new Date(profile.created_at);
-                    const today = new Date();
-                    
-                    const monthsElapsed = (today.getFullYear() - startDate.getFullYear()) * 12 + 
-                                         (today.getMonth() - startDate.getMonth());
-                    
-                    const nextRenewal = new Date(startDate);
-                    nextRenewal.setMonth(startDate.getMonth() + monthsElapsed + 1);
-                    
-                    const renewalMonthName = monthNames[nextRenewal.getMonth()];
-                    const formattedRenewalDate = `${nextRenewal.getDate()} ${renewalMonthName} ${nextRenewal.getFullYear()}`;
-                    
-                    const daysUntilRenewal = Math.ceil((nextRenewal - today) / (1000 * 60 * 60 * 24));
-                    
-                    const activeText = this.translate('profile.subscription.active');
-                    const nextRenewalText = this.translate('profile.next.renewal');
-                    const daysText = daysUntilRenewal > 0 
-                        ? this.translate('profile.renewal.in.days').replace('{days}', daysUntilRenewal).replace('{plural}', daysUntilRenewal > 1 ? 's' : '')
-                        : this.translate('profile.renewal.today');
-                    
-                    statusHTML += `
-                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding: 12px; background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(16, 185, 129, 0.05)); border-radius: 10px; border-left: 3px solid #10B981;">
-                            <span style="font-size: 20px;">🔄</span>
-                            <div>
-                                <div style="font-weight: 700; color: #059669; font-size: 14px;">${activeText}</div>
-                                <div style="color: var(--gray-700); font-size: 13px; margin-top: 3px;">
-                                    ${nextRenewalText} : <strong>${formattedRenewalDate}</strong>
-                                </div>
-                                <div style="color: var(--gray-600); font-size: 12px; margin-top: 5px;">
-                                    ${daysText} • 14,99€
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }
-                
-                statusHTML += `</div>`;
-                planDate.innerHTML = statusHTML;
-                
-            } else {
-                // Pour les utilisateurs FREE
-                const memberSinceText = this.translate('profile.member.since');
-                planDate.innerHTML = `
-                    <div style="margin-top: 15px;">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <span style="font-size: 20px;">📅</span>
-                            <div>
-                                <div style="font-weight: 600; color: var(--gray-900); font-size: 14px;">${memberSinceText}</div>
-                                <div style="color: var(--gray-600); font-size: 13px;">${formattedDate}</div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
+            const monthNames = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+            const formattedDate = `${createdDate.getDate()} ${monthNames[createdDate.getMonth()]} ${createdDate.getFullYear()}`;
+            planDate.textContent = `${t('profile.member.since')} ${formattedDate}`;
         }
 
-        // ✅ LIMITES RAPPORTS (COMPTEUR)
-        const reportsCount = document.getElementById('reportsCountProfile');
-        const reportsLimit = document.getElementById('reportsLimitProfile');
+        // Compteur de rapports
+        this.updateReportsCounter(profile);
+
+        // Boutons d'abonnement
+        this.updateSubscriptionButtons(profile);
+
+        // Appareils connectés
+        this.updateDevicesList(profile);
+    }
+
+    // === MISE À JOUR DU COMPTEUR DE RAPPORTS ===
+    
+    updateReportsCounter(profile) {
+        const isPro = profile.subscription_plan === 'pro';
+        const count = profile.reports_this_month || 0;
+        const limit = isPro ? '∞' : '5';
+
+        const countElement = document.getElementById('reportsCountProfile');
+        const limitElement = document.getElementById('reportsLimitProfile');
         const progressBar = document.getElementById('reportsProgressBar');
 
-        if (reportsCount && reportsLimit && progressBar) {
-            const isPro = profile.subscription_plan === 'pro';
-            const count = profile.reports_this_month || 0;
-            const limit = isPro ? '∞' : 5;
+        if (countElement) countElement.textContent = count;
+        if (limitElement) limitElement.textContent = limit;
 
-            reportsCount.textContent = count;
-            reportsLimit.textContent = limit;
-
+        if (progressBar) {
             if (isPro) {
                 progressBar.style.width = '100%';
-                progressBar.style.background = 'linear-gradient(90deg, #22C55E, #10B981)';
+                progressBar.style.background = 'linear-gradient(90deg, #10b981, #059669)';
             } else {
-                const percentage = (count / 5) * 100;
-                progressBar.style.width = `${Math.min(percentage, 100)}%`;
+                const percentage = Math.min((count / 5) * 100, 100);
+                progressBar.style.width = percentage + '%';
                 
-                if (percentage >= 80) {
-                    progressBar.style.background = 'linear-gradient(90deg, #EF4444, #DC2626)';
-                } else if (percentage >= 50) {
-                    progressBar.style.background = 'linear-gradient(90deg, #F59E0B, #D97706)';
+                if (percentage >= 100) {
+                    progressBar.style.background = 'linear-gradient(90deg, #ef4444, #dc2626)';
+                } else if (percentage >= 80) {
+                    progressBar.style.background = 'linear-gradient(90deg, #f59e0b, #d97706)';
                 } else {
                     progressBar.style.background = 'linear-gradient(90deg, #8B1538, #F59E0B)';
                 }
             }
         }
 
-        // ✅ AFFICHER LA DATE DU PROCHAIN RESET (pour FREE)
-        const nextResetContainer = document.getElementById('nextResetInfo');
-        if (nextResetContainer && profile.subscription_plan === 'free') {
-            const lastReset = new Date(profile.last_reset_date || profile.created_at);
-            const nextReset = new Date(lastReset);
-            nextReset.setDate(nextReset.getDate() + 30);
+        // ✅ AFFICHAGE DE LA DATE DU PROCHAIN RESET (pour FREE uniquement)
+        const nextResetInfo = document.getElementById('nextResetInfo');
+        if (nextResetInfo && !isPro) {
+            const nextReset = this.getNextResetDate();
+            const daysUntilReset = this.getDaysUntilReset();
             
-            const now = new Date();
-            const daysUntilReset = Math.ceil((nextReset - now) / (1000 * 60 * 60 * 24));
-            
-            const monthNames = [
-                this.translate('month.january'), this.translate('month.february'),
-                this.translate('month.march'), this.translate('month.april'),
-                this.translate('month.may'), this.translate('month.june'),
-                this.translate('month.july'), this.translate('month.august'),
-                this.translate('month.september'), this.translate('month.october'),
-                this.translate('month.november'), this.translate('month.december')
-            ];
-            
-            const resetMonthName = monthNames[nextReset.getMonth()];
-            const formattedResetDate = `${nextReset.getDate()} ${resetMonthName} ${nextReset.getFullYear()}`;
-            
-            const nextRenewalText = this.translate('profile.next.renewal');
-            const daysText = daysUntilReset > 0 
-                ? this.translate('profile.renewal.in.days').replace('{days}', daysUntilReset).replace('{plural}', daysUntilReset > 1 ? 's' : '')
-                : this.translate('profile.renewal.today');
-            
-            nextResetContainer.innerHTML = `
-                <div style="margin-top: 20px; padding: 15px; background: linear-gradient(135deg, rgba(139, 21, 56, 0.05), rgba(255, 111, 0, 0.05)); border-radius: 12px; border-left: 4px solid var(--primary);">
-                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                        <span style="font-size: 24px;">📅</span>
-                        <span style="font-weight: 700; color: var(--gray-900); font-size: 15px;">
-                            ${nextRenewalText}
-                        </span>
+            nextResetInfo.innerHTML = `
+                <div style="
+                    margin-top: 15px;
+                    padding: 12px;
+                    background: linear-gradient(135deg, rgba(139, 21, 56, 0.05), rgba(245, 158, 11, 0.05));
+                    border-left: 3px solid var(--primary);
+                    border-radius: 8px;
+                    font-size: 13px;
+                    color: var(--gray-700);
+                ">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                        <span style="font-size: 16px;">🔄</span>
+                        <strong>Prochain reset :</strong>
                     </div>
-                    <p style="margin: 0; color: var(--gray-700); font-size: 14px; font-weight: 500;">
-                        ${formattedResetDate}
-                    </p>
-                    <p style="margin: 5px 0 0 0; color: var(--primary); font-size: 14px; font-weight: 700;">
-                        ${daysText} 🎉
-                    </p>
-                    <p style="margin: 10px 0 0 0; color: var(--gray-500); font-size: 12px; line-height: 1.4;">
-                        💡 Votre compteur sera automatiquement remis à 0 et vous aurez 5 nouveaux rapports disponibles.
-                    </p>
+                    <div style="color: var(--gray-600); margin-left: 24px;">
+                        ${nextReset} (dans ${daysUntilReset} jour${daysUntilReset > 1 ? 's' : ''})
+                    </div>
                 </div>
             `;
-        } else if (nextResetContainer) {
-            nextResetContainer.innerHTML = '';
-        }
-
-        // ✅ GESTION DES BOUTONS UPGRADE / CANCEL
-        const upgradeBtn = document.getElementById('upgradeBtn');
-        const cancelBtn = document.getElementById('cancelSubscriptionBtn');
-
-        if (profile.subscription_plan === 'pro') {
-            if (upgradeBtn) upgradeBtn.style.display = 'none';
-            
-            if (cancelBtn) {
-                cancelBtn.style.display = 'flex';
-                
-                if (profile.subscription_status === 'canceling') {
-                    cancelBtn.disabled = true;
-                    cancelBtn.setAttribute('data-i18n', 'profile.cancellation.pending');
-                    const pendingText = this.translate('profile.cancellation.pending');
-                    cancelBtn.textContent = `⏳ ${pendingText}`;
-                    cancelBtn.style.opacity = '0.6';
-                    cancelBtn.style.cursor = 'not-allowed';
-                } else {
-                    cancelBtn.disabled = false;
-                    cancelBtn.setAttribute('data-i18n', 'profile.cancel');
-                    const cancelText = this.translate('profile.cancel');
-                    cancelBtn.textContent = cancelText;
-                    cancelBtn.style.opacity = '1';
-                    cancelBtn.style.cursor = 'pointer';
-                }
-            }
-        } else {
-            if (upgradeBtn) upgradeBtn.style.display = 'flex';
-            if (cancelBtn) cancelBtn.style.display = 'none';
-        }
-
-        // Appareils connectés
-        this.displayDevices(profile.device_ids || []);
-        
-        // ✅ Mettre à jour les textes des boutons directement avec data-i18n
-        const deleteBtn = document.getElementById('deleteAccountBtn');
-        if (deleteBtn) {
-            deleteBtn.setAttribute('data-i18n', 'profile.delete');
-            const deleteText = this.translate('profile.delete');
-            deleteBtn.textContent = deleteText;
-        }
-        
-        // ✅ S'assurer que le bouton d'annulation a l'attribut data-i18n
-        if (profile.subscription_plan === 'pro' && profile.subscription_status !== 'canceling') {
-            const cancelBtnFinal = document.getElementById('cancelSubscriptionBtn');
-            if (cancelBtnFinal && !cancelBtnFinal.disabled) {
-                cancelBtnFinal.setAttribute('data-i18n', 'profile.cancel');
-                const cancelTextFinal = this.translate('profile.cancel');
-                cancelBtnFinal.textContent = cancelTextFinal;
-            }
-        }
-        
-        // ✅ Forcer la mise à jour des traductions après modification du DOM
-        if (window.languageManager) {
-            setTimeout(() => window.languageManager.updateUI(), 100);
+        } else if (nextResetInfo) {
+            nextResetInfo.innerHTML = '';
         }
     }
 
-    // === AFFICHAGE DES APPAREILS ===
-    displayDevices(deviceIds) {
-        const container = document.getElementById('devicesList');
-        if (!container) return;
+    // === CALCUL DE LA DATE DU PROCHAIN RESET ===
+    
+    getNextResetDate() {
+        const now = new Date();
+        const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        const monthNames = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+        return `1er ${monthNames[nextMonth.getMonth()]} ${nextMonth.getFullYear()}`;
+    }
 
-        if (!deviceIds || deviceIds.length === 0) {
-            const noDevicesText = this.translate('profile.devices.none');
-            container.innerHTML = `
-                <div class="empty-state" style="padding: 30px;">
-                    <div class="icon">📱</div>
-                    <p>${noDevicesText}</p>
-                </div>
+    getDaysUntilReset() {
+        const now = new Date();
+        const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        const diffTime = nextMonth - now;
+        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    }
+
+    // === MISE À JOUR DES BOUTONS D'ABONNEMENT ===
+    
+    updateSubscriptionButtons(profile) {
+        const upgradeBtn = document.getElementById('upgradeBtn');
+        const cancelBtn = document.getElementById('cancelSubscriptionBtn');
+
+        const isPro = profile.subscription_plan === 'pro';
+
+        if (upgradeBtn) {
+            upgradeBtn.style.display = isPro ? 'none' : 'flex';
+        }
+
+        if (cancelBtn) {
+            cancelBtn.style.display = isPro ? 'flex' : 'none';
+        }
+
+        // Affichage des informations d'annulation si applicable
+        if (isPro && profile.subscription_cancel_at) {
+            const planDate = document.getElementById('planDate');
+            if (planDate) {
+                const cancelDate = new Date(profile.subscription_cancel_at);
+                const formattedDate = cancelDate.toLocaleDateString('fr-FR', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                });
+
+                planDate.innerHTML = `
+                    <div style="color: var(--warning); font-weight: 600; margin-bottom: 10px;">
+                        ⚠️ ${t('profile.cancellation.scheduled')}
+                    </div>
+                    <div style="font-size: 14px; color: var(--gray-600);">
+                        ${t('profile.cancellation.date')} <strong>${formattedDate}</strong>
+                    </div>
+                    <div style="font-size: 13px; color: var(--gray-500); margin-top: 5px;">
+                        ${t('profile.cancellation.keep.access')}
+                    </div>
+                `;
+            }
+        }
+    }
+
+    // === MISE À JOUR DE LA LISTE DES APPAREILS ===
+    
+    updateDevicesList(profile) {
+        const devicesList = document.getElementById('devicesList');
+        if (!devicesList) return;
+
+        const devices = profile.devices || [];
+
+        if (devices.length === 0) {
+            devicesList.innerHTML = `
+                <p style="color: var(--gray-500); font-size: 14px; text-align: center; padding: 20px;">
+                    ${t('profile.devices.none')}
+                </p>
             `;
             return;
         }
 
-        const deviceText = this.translate('profile.device');
-        const connectedText = this.translate('profile.device.connected');
-        
-        container.innerHTML = deviceIds.map((deviceId, index) => {
-            const shortId = deviceId.substring(0, 30);
-            return `
-                <div class="device-item">
-                    <div class="device-icon">📱</div>
-                    <div class="device-info">
-                        <div class="device-name">${deviceText} ${index + 1}</div>
-                        <div class="device-id">${shortId}...</div>
+        devicesList.innerHTML = devices.map((device, index) => `
+            <div style="
+                padding: 15px;
+                background: var(--gray-50);
+                border-radius: 10px;
+                margin-bottom: 10px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            ">
+                <div>
+                    <div style="font-weight: 600; color: var(--gray-800); margin-bottom: 5px;">
+                        ${t('profile.device')} ${index + 1}
                     </div>
-                    <div class="device-status">
-                        <span class="status-dot"></span>
-                        ${connectedText}
+                    <div style="font-size: 12px; color: var(--gray-500);">
+                        ${t('profile.device.connected')} ${new Date(device.connected_at || Date.now()).toLocaleDateString()}
                     </div>
                 </div>
-            `;
-        }).join('');
+                <div style="
+                    width: 10px;
+                    height: 10px;
+                    background: var(--success);
+                    border-radius: 50%;
+                "></div>
+            </div>
+        `).join('');
     }
 
     // === SAUVEGARDE DU PROFIL ===
+    
     async saveProfile() {
         const firstNameInput = document.getElementById('profileFirstName');
         const lastNameInput = document.getElementById('profileLastName');
@@ -360,409 +256,277 @@ class ProfileManager {
             return;
         }
 
-        try {
-            console.log('💾 Sauvegarde du profil...');
+        const currentUser = this.appManager.getCurrentUser();
+        if (!currentUser || !currentUser.id) {
+            Utils.showToast('Utilisateur non connecté', 'error');
+            return;
+        }
 
-            const { data, error } = await this.supabase
+        try {
+            const { error } = await window.supabaseClient
                 .from('profiles')
                 .update({
                     first_name: firstName,
                     last_name: lastName
                 })
-                .eq('id', this.currentUser.id)
-                .select()
-                .single();
+                .eq('id', currentUser.id);
 
             if (error) throw error;
 
-            console.log('✅ Profil mis à jour:', data);
-            this.currentUser = data;
+            // Mise à jour du nom affiché dans le header
+            const userNameElement = document.getElementById('userName');
+            if (userNameElement) {
+                userNameElement.textContent = `${firstName} ${lastName}`;
+            }
+
+            Utils.showToast('✅ Profil sauvegardé avec succès', 'success');
             
-            const successText = this.translate('profile.save.success');
-            Utils.showToast(successText, 'success');
+            // Recharger le profil
+            await this.loadProfile(currentUser.id);
 
         } catch (error) {
             console.error('❌ Erreur sauvegarde profil:', error);
-            const errorText = this.translate('profile.save.error');
-            Utils.showToast(errorText, 'error');
+            Utils.showToast('Erreur lors de la sauvegarde', 'error');
         }
     }
 
-    // === UPGRADE MODAL ===
-    handleUpgrade() {
-        const modal = document.createElement('div');
-        modal.className = 'upgrade-modal-overlay';
-        modal.innerHTML = `
-            <div class="upgrade-modal-content">
-                <button class="upgrade-modal-close" onclick="this.closest('.upgrade-modal-overlay').remove()">×</button>
-                
-                <div class="upgrade-modal-header">
-                    <h2 class="upgrade-modal-title" data-i18n="upgrade.title">Choisissez votre plan</h2>
-                    <p class="upgrade-modal-subtitle" data-i18n="upgrade.subtitle">Débloquez tout le potentiel de VOCALIA</p>
-                </div>
-                
-                <div class="plans-comparison">
-                    <div class="plan-card-modal free-plan">
-                        <div class="plan-name" data-i18n="upgrade.free.name">Plan FREE</div>
-                        <div class="plan-price-modal">
-                            <span class="price-amount">0€</span>
-                            <span class="price-period" data-i18n="upgrade.price.month">/mois</span>
-                        </div>
-                        
-                        <ul class="plan-features-modal">
-                            <li class="feature-item">
-                                <span class="feature-icon">✅</span>
-                                <span data-i18n="upgrade.feature.reports.5">5 rapports/mois</span>
-                            </li>
-                            <li class="feature-item">
-                                <span class="feature-icon">✅</span>
-                                <span data-i18n="upgrade.feature.devices.2">2 appareils max</span>
-                            </li>
-                            <li class="feature-item">
-                                <span class="feature-icon">✅</span>
-                                <span data-i18n="upgrade.feature.transcription">Transcription IA</span>
-                            </li>
-                            <li class="feature-item">
-                                <span class="feature-icon">✅</span>
-                                <span data-i18n="upgrade.feature.pdf">Export PDF</span>
-                            </li>
-                            <li class="feature-item disabled">
-                                <span class="feature-icon">❌</span>
-                                <span data-i18n="upgrade.feature.translation">Traduction multilingue</span>
-                            </li>
-                            <li class="feature-item disabled">
-                                <span class="feature-icon">❌</span>
-                                <span data-i18n="upgrade.feature.folders">Dossiers illimités</span>
-                            </li>
-                            <li class="feature-item disabled">
-                                <span class="feature-icon">❌</span>
-                                <span data-i18n="upgrade.feature.support">Support prioritaire</span>
-                            </li>
-                        </ul>
-                        
-                        <button class="plan-button-modal current" disabled data-i18n="upgrade.current">
-                            Plan actuel
-                        </button>
-                    </div>
-                    
-                    <div class="plan-card-modal pro-plan">
-                        <div class="plan-badge-modal pro" data-i18n="upgrade.pro.badge">RECOMMANDÉ</div>
-                        <div class="plan-price-modal">
-                            <span class="price-amount">14,99€</span>
-                            <span class="price-period" data-i18n="upgrade.price.month">/mois</span>
-                        </div>
-                        <div class="plan-name" data-i18n="upgrade.pro.name">Plan PRO</div>
-                        
-                        <ul class="plan-features-modal">
-                            <li class="feature-item">
-                                <span class="feature-icon">✅</span>
-                                <span><strong data-i18n="upgrade.feature.reports.unlimited">Rapports illimités</strong></span>
-                            </li>
-                            <li class="feature-item">
-                                <span class="feature-icon">✅</span>
-                                <span><strong data-i18n="upgrade.feature.devices.unlimited">Appareils illimités</strong></span>
-                            </li>
-                            <li class="feature-item">
-                                <span class="feature-icon">✅</span>
-                                <span data-i18n="upgrade.feature.transcription.advanced">Transcription IA avancée</span>
-                            </li>
-                            <li class="feature-item">
-                                <span class="feature-icon">✅</span>
-                                <span data-i18n="upgrade.feature.pdf.word">Export PDF + Word</span>
-                            </li>
-                            <li class="feature-item">
-                                <span class="feature-icon">✅</span>
-                                <span><strong data-i18n="upgrade.feature.translation.6">Traduction 6 langues</strong></span>
-                            </li>
-                            <li class="feature-item">
-                                <span class="feature-icon">✅</span>
-                                <span><strong data-i18n="upgrade.feature.folders">Dossiers illimités</strong></span>
-                            </li>
-                            <li class="feature-item">
-                                <span class="feature-icon">✅</span>
-                                <span><strong data-i18n="upgrade.feature.support.24">Support prioritaire 24/7</strong></span>
-                            </li>
-                        </ul>
-                        
-                        <button class="plan-button-modal upgrade" onclick="window.appManager.profileManager.initStripeCheckout()">
-                            🚀 <span data-i18n="upgrade.button">Passer au PRO</span>
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="upgrade-footer">
-                    <p data-i18n="upgrade.footer">💳 Paiement sécurisé par Stripe • Annulation à tout moment</p>
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(modal);
-        
-        if (window.languageManager) {
-            window.languageManager.updateUI();
+    // === GESTION DE L'UPGRADE - VERSION CORRIGÉE ===
+    
+    async handleUpgrade() {
+        const currentUser = this.appManager.getCurrentUser();
+        if (!currentUser || !currentUser.id) {
+            Utils.showToast('Utilisateur non connecté', 'error');
+            return;
         }
-        
-        requestAnimationFrame(() => {
-            modal.style.opacity = '1';
-            modal.querySelector('.upgrade-modal-content').style.transform = 'scale(1)';
-        });
-    }
 
-    // === MODAL UPGRADE (limite atteinte) ===
-    showUpgradeModal() {
-        const modal = Utils.createModal(
-            '🚫 Limite atteinte !',
-            `<div style="text-align: center; padding: 20px;">
-                <div style="font-size: 64px; margin-bottom: 20px;">📊</div>
-                <h3 style="color: var(--error); margin-bottom: 15px;">
-                    Vous avez atteint votre limite mensuelle
-                </h3>
-                <p style="font-size: 16px; color: var(--gray-700); margin-bottom: 30px; line-height: 1.6;">
-                    Votre plan <strong>FREE</strong> vous permet de créer <strong>5 rapports par mois</strong>.<br>
-                    Vous avez utilisé <strong>5/5 rapports ce mois</strong>.
-                </p>
-                <div style="background: linear-gradient(135deg, rgba(139, 21, 56, 0.1), rgba(255, 111, 0, 0.1)); padding: 25px; border-radius: 15px; margin-bottom: 25px;">
-                    <h4 style="color: var(--primary); margin-bottom: 15px; font-size: 18px;">
-                        ✨ Passez au plan PRO pour débloquer :
-                    </h4>
-                    <ul style="text-align: left; list-style: none; padding: 0; margin: 0;">
-                        <li style="padding: 8px 0; color: var(--gray-800);">
-                            <strong>✅ Rapports illimités</strong> - Créez autant de rapports que vous voulez
-                        </li>
-                        <li style="padding: 8px 0; color: var(--gray-800);">
-                            <strong>✅ Appareils illimités</strong> - Connectez tous vos appareils
-                        </li>
-                        <li style="padding: 8px 0; color: var(--gray-800);">
-                            <strong>✅ Transcription IA avancée</strong> - Meilleure qualité
-                        </li>
-                        <li style="padding: 8px 0; color: var(--gray-800);">
-                            <strong>✅ Export Word</strong> - PDF + DOCX
-                        </li>
-                        <li style="padding: 8px 0; color: var(--gray-800);">
-                            <strong>✅ Support prioritaire 24/7</strong>
-                        </li>
-                    </ul>
-                </div>
-                <div style="display: flex; gap: 15px; justify-content: center; align-items: center; margin-bottom: 15px;">
-                    <div style="text-align: center;">
-                        <div style="font-size: 32px; font-weight: 700; color: var(--primary);">14,99€</div>
-                        <div style="font-size: 14px; color: var(--gray-600);">/mois</div>
-                    </div>
-                </div>
-                <p style="font-size: 12px; color: var(--gray-500); margin-top: 20px;">
-                    🔒 Paiement sécurisé par Stripe • Annulation à tout moment
-                </p>
-            </div>`,
-            [
-                { text: 'Plus tard', class: 'btn-secondary', onclick: 'this.closest("[data-modal]").remove()' },
-                { text: '🚀 Passer au PRO maintenant', class: 'btn-primary', onclick: 'window.appManager.profileManager.handleUpgrade(); this.closest("[data-modal]").remove();' }
-            ]
-        );
-    }
-
-    // === INITIALISATION STRIPE ===
-    async initStripeCheckout() {
         try {
-            console.log('🚀 Initialisation du paiement Stripe...');
-
-            const modal = document.querySelector('.upgrade-modal-overlay');
-            if (modal) modal.remove();
-
-            Utils.showToast('Redirection vers le paiement sécurisé...', 'info');
-
-            await this.loadStripeScript();
-            const stripe = window.Stripe(window.STRIPE_CONFIG.publishableKey);
-
-            const response = await fetch('https://alsyhwaplkwmwddirxwu.supabase.co/functions/v1/create-checkout-session', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${(await this.supabase.auth.getSession()).data.session?.access_token}`
-                },
-                body: JSON.stringify({
-                    userId: this.currentUser.id,
-                    priceId: window.STRIPE_CONFIG.priceId,
-                    successUrl: window.STRIPE_CONFIG.successUrl,
-                    cancelUrl: window.STRIPE_CONFIG.cancelUrl
-                })
+            console.log('========== DÉBUT CRÉATION SESSION STRIPE ==========');
+            console.log('🚀 Création de la session Stripe...');
+            
+            // ✅ CORRECTION : Envoyer les paramètres attendus par l'Edge Function
+            const priceId = window.STRIPE_CONFIG?.PRICE_ID || 'price_1QI5lqEuhOtEuBa0Xny7QrOt'; // Votre Price ID Stripe
+            const successUrl = `${window.location.origin}/app.html?status=success`;
+            const cancelUrl = `${window.location.origin}/app.html?status=cancel`;
+            
+            console.log('📊 Données envoyées:', {
+                userId: currentUser.id,
+                priceId: priceId,
+                successUrl: successUrl,
+                cancelUrl: cancelUrl
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Erreur lors de la création de la session');
+            // Appel à la fonction Edge
+            const response = await window.supabaseClient.functions.invoke('create-checkout-session', {
+                body: { 
+                    userId: currentUser.id,
+                    priceId: priceId,
+                    successUrl: successUrl,
+                    cancelUrl: cancelUrl
+                }
+            });
+
+            console.log('========== RÉPONSE EDGE FUNCTION ==========');
+            console.log('📦 Réponse COMPLÈTE:', response);
+            console.log('📦 response.data:', response.data);
+            console.log('📦 response.error:', response.error);
+
+            // Si erreur dans response.error
+            if (response.error) {
+                console.error('========== ERREUR DÉTECTÉE ==========');
+                console.error('❌ response.error:', response.error);
+                throw response.error;
             }
 
-            const { sessionId } = await response.json();
-            const { error } = await stripe.redirectToCheckout({ sessionId });
+            // Si erreur dans response.data
+            if (response.data && response.data.error) {
+                console.error('========== ERREUR DANS DATA ==========');
+                console.error('❌ response.data.error:', response.data.error);
+                throw new Error(response.data.error);
+            }
 
-            if (error) throw error;
+            // ✅ CORRECTION : L'Edge Function retourne sessionId, pas url
+            if (!response.data || !response.data.sessionId) {
+                console.error('========== PAS DE SESSION ID ==========');
+                console.error('❌ response.data:', response.data);
+                throw new Error('Session ID non reçue');
+            }
+
+            // ✅ Construire l'URL Stripe Checkout manuellement
+            const checkoutUrl = `https://checkout.stripe.com/c/pay/${response.data.sessionId}`;
+
+            // Succès !
+            console.log('========== SUCCÈS ==========');
+            console.log('✅ Session ID reçue:', response.data.sessionId);
+            console.log('✅ URL Checkout:', checkoutUrl);
+            console.log('✅ Redirection vers Stripe Checkout...');
+            window.location.href = checkoutUrl;
 
         } catch (error) {
-            console.error('❌ Erreur paiement Stripe:', error);
-            Utils.showToast('Erreur lors de l\'initialisation du paiement. Réessayez plus tard.', 'error');
+            console.error('========== ERREUR CATCH ==========');
+            console.error('❌ Erreur création session Stripe:', error);
+            console.error('❌ Type d\'erreur:', error.constructor.name);
+            console.error('❌ Message:', error.message);
+            console.error('❌ Stack:', error.stack);
+            console.error('❌ Toutes les propriétés:', Object.keys(error));
+            console.error('❌ JSON.stringify:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+            
+            // Message d'erreur pour l'utilisateur
+            let errorMessage = 'Erreur lors de la création de la session de paiement';
+            
+            if (error.message) {
+                errorMessage += `: ${error.message}`;
+            }
+            
+            Utils.showToast(errorMessage, 'error', 5000);
         }
     }
 
     // === ANNULATION DE L'ABONNEMENT ===
+    
     async cancelSubscription() {
-        const confirmMessage = this.translate('profile.cancel.confirm');
-        const confirmed = confirm(confirmMessage);
+        const confirmMessage = t('profile.cancel.confirm');
+        
+        if (!confirm(confirmMessage)) {
+            return;
+        }
 
-        if (!confirmed) return;
-
-        const cancelBtn = document.getElementById('cancelSubscriptionBtn');
-        if (cancelBtn) {
-            cancelBtn.disabled = true;
-            const cancelingText = this.translate('profile.canceling');
-            cancelBtn.innerHTML = `<div class="loading-spinner"></div> ${cancelingText}`;
+        const currentUser = this.appManager.getCurrentUser();
+        if (!currentUser || !currentUser.id) {
+            Utils.showToast('Utilisateur non connecté', 'error');
+            return;
         }
 
         try {
             console.log('🚫 Annulation de l\'abonnement...');
 
-            const { data: { session } } = await this.supabase.auth.getSession();
-            
-            if (!session) {
-                throw new Error(this.translate('profile.no.session'));
+            const { data, error } = await window.supabaseClient.functions.invoke('cancel-subscription', {
+                body: { userId: currentUser.id }
+            });
+
+            if (error) throw error;
+
+            if (data && data.success) {
+                const cancelDate = new Date(data.cancel_at * 1000).toLocaleDateString('fr-FR', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                });
+
+                Utils.showToast(
+                    `${t('profile.cancel.success')} ${cancelDate}`,
+                    'success',
+                    5000
+                );
+
+                // Recharger le profil pour mettre à jour l'UI
+                await this.loadProfile(currentUser.id);
+
+            } else {
+                throw new Error('Réponse invalide du serveur');
             }
-
-            const response = await fetch(
-                'https://alsyhwaplkwmwddirxwu.supabase.co/functions/v1/cancel-subscription',
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${session.access_token}`,
-                    },
-                }
-            );
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || this.translate('profile.cancel.error'));
-            }
-
-            const data = await response.json();
-            console.log('✅ Abonnement annulé:', data);
-
-            const endDate = new Date(data.end_date);
-            const monthNames = [
-                this.translate('month.january'), this.translate('month.february'),
-                this.translate('month.march'), this.translate('month.april'),
-                this.translate('month.may'), this.translate('month.june'),
-                this.translate('month.july'), this.translate('month.august'),
-                this.translate('month.september'), this.translate('month.october'),
-                this.translate('month.november'), this.translate('month.december')
-            ];
-            
-            const endMonthName = monthNames[endDate.getMonth()];
-            const formattedDate = `${endDate.getDate()} ${endMonthName} ${endDate.getFullYear()}`;
-
-            const successMessage = this.translate('profile.cancel.success');
-            Utils.showToast(`${successMessage} ${formattedDate}`, 'success');
-
-            await this.loadProfile(this.currentUser.id);
 
         } catch (error) {
-            console.error('❌ Erreur annulation:', error);
-            Utils.showToast(this.translate('profile.cancel.error'), 'error');
-        } finally {
-            if (cancelBtn) {
-                cancelBtn.disabled = false;
-                cancelBtn.setAttribute('data-i18n', 'profile.cancel');
-                const cancelText = this.translate('profile.cancel');
-                cancelBtn.textContent = cancelText;
-            }
+            console.error('❌ Erreur annulation abonnement:', error);
+            Utils.showToast(t('profile.cancel.error'), 'error');
         }
     }
 
-    // Charger le script Stripe
-    async loadStripeScript() {
-        return new Promise((resolve, reject) => {
-            if (document.querySelector('script[src*="stripe.com"]')) {
-                resolve();
-                return;
-            }
-            
-            const script = document.createElement('script');
-            script.src = 'https://js.stripe.com/v3/';
-            script.onload = resolve;
-            script.onerror = reject;
-            document.head.appendChild(script);
-        });
-    }
-
     // === SUPPRESSION DU COMPTE ===
+    
     async deleteAccount() {
-        const confirmed = confirm(
-            '⚠️ ATTENTION ⚠️\n\n' +
-            'Êtes-vous VRAIMENT sûr de vouloir supprimer votre compte ?\n\n' +
-            'Cette action est IRRÉVERSIBLE et supprimera :\n' +
-            '• Tous vos rapports\n' +
-            '• Tous vos brouillons\n' +
-            '• Tous vos dossiers\n' +
-            '• Toutes vos données personnelles\n\n' +
-            'Voulez-vous continuer ?'
-        );
+        const confirmMessage = `⚠️ ATTENTION ⚠️
 
-        if (!confirmed) return;
+Êtes-vous ABSOLUMENT SÛR de vouloir supprimer votre compte ?
 
-        const magicWord = prompt(
-            '🔒 CONFIRMATION FINALE\n\n' +
-            'Pour confirmer la suppression, tapez exactement :\n' +
-            'SUPPRIMER MON COMPTE'
-        );
+Cette action est DÉFINITIVE et IRRÉVERSIBLE :
+- Tous vos rapports seront supprimés
+- Tous vos brouillons seront supprimés
+- Tous vos dossiers seront supprimés
+- Votre abonnement sera annulé
+- Toutes vos données seront effacées
 
-        if (magicWord !== 'SUPPRIMER MON COMPTE') {
+Tapez "SUPPRIMER" pour confirmer :`;
+
+        const userInput = prompt(confirmMessage);
+
+        if (userInput !== 'SUPPRIMER') {
             Utils.showToast('Suppression annulée', 'info');
             return;
         }
 
-        const deleteBtn = document.getElementById('deleteAccountBtn');
-        if (deleteBtn) {
-            deleteBtn.disabled = true;
-            deleteBtn.innerHTML = '<div class="loading-spinner"></div> Suppression...';
+        const currentUser = this.appManager.getCurrentUser();
+        if (!currentUser || !currentUser.id) {
+            Utils.showToast('Utilisateur non connecté', 'error');
+            return;
         }
 
         try {
-            console.log('🗑️ Suppression du compte en cours...');
+            console.log('🗑️ Suppression du compte...');
 
-            const { error: deleteError } = await this.supabase
+            // Suppression de tous les rapports
+            await window.supabaseClient
+                .from('reports')
+                .delete()
+                .eq('user_id', currentUser.id);
+
+            // Suppression de tous les brouillons
+            await window.supabaseClient
+                .from('drafts')
+                .delete()
+                .eq('user_id', currentUser.id);
+
+            // Suppression de tous les dossiers
+            await window.supabaseClient
+                .from('folders')
+                .delete()
+                .eq('user_id', currentUser.id);
+
+            // Suppression du profil
+            const { error: profileError } = await window.supabaseClient
                 .from('profiles')
                 .delete()
-                .eq('id', this.currentUser.id);
+                .eq('id', currentUser.id);
 
-            if (deleteError) throw deleteError;
+            if (profileError) throw profileError;
 
-            const { error: authError } = await this.supabase.auth.admin.deleteUser(
-                this.currentUser.id
+            // Suppression de l'utilisateur Auth
+            const { error: authError } = await window.supabaseClient.auth.admin.deleteUser(
+                currentUser.id
             );
 
             if (authError) {
-                console.warn('⚠️ Erreur suppression auth (normal si RLS):', authError);
+                console.warn('⚠️ Erreur suppression Auth (normal si pas admin):', authError);
             }
 
-            await this.supabase.auth.signOut();
+            Utils.showToast('✅ Compte supprimé avec succès', 'success');
 
-            console.log('✅ Compte supprimé avec succès');
-            Utils.showToast('Compte supprimé. Au revoir ! 👋', 'success');
-
+            // Déconnexion et redirection
             setTimeout(() => {
-                window.location.href = 'register.html';
+                this.appManager.logout();
             }, 2000);
 
         } catch (error) {
             console.error('❌ Erreur suppression compte:', error);
             Utils.showToast('Erreur lors de la suppression du compte', 'error');
-            
-            if (deleteBtn) {
-                deleteBtn.disabled = false;
-                const deleteText = this.translate('profile.delete');
-                deleteBtn.textContent = deleteText;
-            }
         }
     }
-}
 
-// Export global
-window.ProfileManager = ProfileManager;
+    // === VÉRIFICATION DU STATUT PRO ===
+    
+    async checkProStatus() {
+        if (!this.currentProfile) {
+            const currentUser = this.appManager.getCurrentUser();
+            if (currentUser && currentUser.id) {
+                await this.loadProfile(currentUser.id);
+            }
+        }
+
+        return this.currentProfile?.subscription_plan === 'pro';
+    }
+
+    // === OBTENIR LE PROFIL ACTUEL ===
+    
+    getCurrentProfile() {
+        return this.currentProfile;
+    }
+}
